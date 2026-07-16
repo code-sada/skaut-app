@@ -1,0 +1,58 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Patrol {
+  id      String  @id @default(uuid())
+  name    String  @unique 
+  users   User[]          
+  events  Event[]         
+}
+
+model User {
+  id                 String       @id @default(uuid())
+  email              String       @unique
+  password           String
+  name               String
+  role               String       @default("MEMBER")
+  createdAt          DateTime     @default(now())
+  patrolId           String?
+  patrol             Patrol?      @relation(fields: [patrolId], references: [id])
+  createdEvents      Event[]
+  attendance         Attendance[]
+  mustChangePassword Boolean      @default(true) // <--- NUTNOST ZMĚNY HESLA
+}
+
+model Event {
+  id            String       @id @default(uuid())
+  title         String
+  description   String
+  date          DateTime
+  location      String
+  createdAt     DateTime     @default(now())
+  isForAll      Boolean      @default(true) 
+  allowedPatrols Patrol[]
+  createdById   String
+  createdBy     User         @relation(fields: [createdById], references: [id])
+  attendance    Attendance[]
+  
+  priceChildren Int          @default(0)
+  priceOlder    Int          @default(0)
+  targetPatrol  String       @default("Všichni")
+}
+
+model Attendance {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  status    String   @default("PENDING") 
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  @@unique([userId, eventId]) 
+}
