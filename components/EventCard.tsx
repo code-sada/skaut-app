@@ -3,7 +3,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Pencil, Trash2, MapPin, CalendarDays, Clock, Users, Info, X, Banknote, Tent } from 'lucide-react'
 
-export default function EventCard({ event, deleteEventAction }: { event: any, deleteEventAction: any }) {
+// Přidán parametr canManage typu boolean
+export default function EventCard({ event, deleteEventAction, canManage }: { event: any, deleteEventAction: any, canManage?: boolean }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
@@ -35,19 +36,23 @@ export default function EventCard({ event, deleteEventAction }: { event: any, de
           <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">{event.description}</p>
         </div>
 
-        {/* Tlačítka (stopPropagation zabrání otevření modálu při kliknutí na Smazat/Upravit) */}
+        {/* Tlačítka s ochranou proti šíření kliknutí */}
         <div className="flex items-center gap-6 md:pl-6 md:border-l border-gray-100" onClick={(e) => e.stopPropagation()}>
-          <div className="flex gap-1.5">
-            <Link href={`/edit/${event.id}`} className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="Upravit akci">
-              <Pencil className="w-4 h-4" />
-            </Link>
-            <form action={deleteEventAction}>
-              <input type="hidden" name="id" value={event.id} />
-              <button type="submit" className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Smazat akci">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </form>
-          </div>
+          
+          {/* Akční tlačítka uvidí POUZE admin nebo vedoucí */}
+          {canManage && (
+            <div className="flex gap-1.5">
+              <Link href={`/edit/${event.id}`} className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="Upravit akci">
+                <Pencil className="w-4 h-4" />
+              </Link>
+              <form action={deleteEventAction}>
+                <input type="hidden" name="id" value={event.id} />
+                <button type="submit" className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Smazat akci">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
+          )}
           
           <div className="text-right min-w-[100px] bg-gray-50 p-3 rounded-xl border border-gray-100">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Tvoje cena</p>
@@ -121,7 +126,7 @@ export default function EventCard({ event, deleteEventAction }: { event: any, de
                     <p><strong>Cena (účastníci):</strong> {event.priceChildren} Kč</p>
                     <p><strong>Cena (vedoucí):</strong> {event.priceOlder} Kč</p>
                     {event.paymentMethod && <p><strong>Způsob platby:</strong> {event.paymentMethod}</p>}
-                    {event.paymentDeadline && <p><strong>Zaplatit do:</strong> <span className="text-red-600 font-bold">{new Date(event.paymentDeadline).toLocaleDateString('cs-CZ')}</span></p>}
+                    {event.paymentDeadline && <p><strong>Zaplatit do:</strong> <span className="text-red-600 font-bold">{event.paymentDeadline ? new Date(event.paymentDeadline).toLocaleDateString('cs-CZ') : '-'}</span></p>}
                   </div>
                 </div>
 
@@ -129,7 +134,7 @@ export default function EventCard({ event, deleteEventAction }: { event: any, de
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-pink-500" /> Účast a kontakty</h3>
                   <div className="space-y-2.5 text-sm text-gray-700">
                     <p><strong>Kapacita:</strong> {event.capacity ? `${event.capacity} osob` : 'Neomezeno'}</p>
-                    {event.rsvpDeadline && <p><strong>Přihlášky do:</strong> <span className="text-red-600 font-bold">{new Date(event.rsvpDeadline).toLocaleDateString('cs-CZ')}</span></p>}
+                    {event.rsvpDeadline && <p><strong>Přihlášky do:</strong> <span className="text-red-600 font-bold">{event.rsvpDeadline ? new Date(event.rsvpDeadline).toLocaleDateString('cs-CZ') : '-'}</span></p>}
                     <div className="h-px bg-gray-100 my-2"></div>
                     <p><strong>Vedoucí:</strong> {event.leaderInCharge || 'Nespecifikováno'}</p>
                     {event.leaderContact && <p><strong>Kontakt:</strong> <a href={`tel:${event.leaderContact}`} className="text-blue-600 font-medium hover:underline">{event.leaderContact}</a></p>}

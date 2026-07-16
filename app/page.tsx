@@ -1,12 +1,27 @@
 import { PrismaClient } from '@prisma/client'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { Tent, Plus } from 'lucide-react'
 import { deleteEvent } from './actions'
-import EventCard from '@/components/EventCard' // <--- Načteme naši novou kartu
+import EventCard from '@/components/EventCard'
 
 const prisma = new PrismaClient()
 
 export default async function HomePage() {
+  // 1. Získání ID přihlášeného uživatele z cookies
+  const cookieStore = await cookies()
+  const userId = cookieStore.get('userId')?.value
+
+  // 2. Vyhledání uživatele v databázi pro zjištění jeho role
+  let currentUser = null
+  if (userId) {
+    currentUser = await prisma.user.findUnique({ where: { id: userId } })
+  }
+
+  // 3. Kontrola práv (např. 'admin' z tvého seedu nebo případný 'LEADER'/'leader')
+  const role = currentUser?.role
+  const canManage = role === 'admin' || role === 'LEADER' || role === 'leader'
+
   const events = await prisma.event.findMany({
     orderBy: { date: 'asc' }
   })
@@ -20,21 +35,24 @@ export default async function HomePage() {
           <p className="text-gray-500 mt-1">Co nás v nejbližší době čeká a nemine.</p>
         </div>
         
-        <Link 
-          href="/add"
-          className="flex items-center gap-2 bg-[#00c853] hover:bg-[#00b34a] text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm shrink-0"
-        >
-          <Plus className="w-5 h-5" /> Přidat akci
-        </Link>
+        {/* Tlačítko se zobrazí pouze pokud má uživatel práva (canManage === true) */}
+        {canManage && (
+          <Link 
+            href="/add"
+            className="flex items-center gap-2 bg-[#00c853] hover:bg-[#00b34a] text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm shrink-0"
+          >
+            <Plus className="w-5 h-5" /> Přidat akci
+          </Link>
+        )}
       </div>
 
       <div className="space-y-4">
         {events.map((event) => (
-          /* Zde se vykreslí naše nová karta pro každou akci */
           <EventCard 
             key={event.id} 
             event={event} 
             deleteEventAction={deleteEvent} 
+            canManage={canManage} // Předání práv do interaktivní komponenty
           />
         ))}
 
