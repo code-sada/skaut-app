@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import Link from 'next/link'
-import { Pencil, Trash2, MapPin, CalendarDays, Tent } from 'lucide-react'
+import { Pencil, Trash2, MapPin, CalendarDays, Tent, Plus } from 'lucide-react'
 import { deleteEvent } from './actions'
 
 const prisma = new PrismaClient()
@@ -13,12 +13,20 @@ export default async function HomePage() {
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
       
-      {/* ČISTÝ NADPIS - Už žádná zbytečná tlačítka na odhlášení! */}
+      {/* NADPIS A TLAČÍTKO PRO PŘIDÁNÍ AKCE */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-extrabold text-[#1a237e]">Nástěnka akcí</h1>
           <p className="text-gray-500 mt-1">Co nás v nejbližší době čeká a nemine.</p>
         </div>
+        
+        {/* Zde je to chybějící tlačítko s funkčním odkazem na /add */}
+        <Link 
+          href="/add"
+          className="flex items-center gap-2 bg-[#00c853] hover:bg-[#00b34a] text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm"
+        >
+          <Plus className="w-5 h-5" /> Přidat akci
+        </Link>
       </div>
 
       {/* VÝPIS AKCÍ */}
@@ -52,12 +60,12 @@ export default async function HomePage() {
             {/* Pravá strana - tlačítka a cena */}
             <div className="flex items-center gap-6 md:pl-6 md:border-l border-gray-100">
               <div className="flex gap-1.5">
-                <Link href={`/edit/${event.id}`} className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors">
+                <Link href={`/edit/${event.id}`} className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors" title="Upravit akci">
                   <Pencil className="w-4 h-4" />
                 </Link>
                 <form action={deleteEvent}>
                   <input type="hidden" name="id" value={event.id} />
-                  <button type="submit" className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                  <button type="submit" className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Smazat akci">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </form>

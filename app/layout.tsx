@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { PrismaClient } from '@prisma/client'
 import { logoutUser } from './actions'
-import { Home, Calendar, Shield, Users, Folder, Bell, Plus, Search, Tent, LogOut, Settings } from 'lucide-react'
+import { Home, Calendar, Shield, Users, Folder, Bell, Search, Tent, LogOut, Settings } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -62,10 +61,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <Bell className="w-5 h-5" />
                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                   </button>
-                  
-                  <Link href="/" className="flex items-center gap-2 bg-[#00c853] hover:bg-[#00b34a] text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm">
-                    <Plus className="w-5 h-5" /> Přidat akci
-                  </Link>
                 </div>
               </header>
 

@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation'
 export default function Navbar() {
   const pathname = usePathname() || '/'
 
+  // Odstraněno 'Přidat akci'
   const navItems = [
     { href: '/', label: 'Přehled' },
-    { href: '/admin', label: 'Správa účtů' },
-    { href: '/add', label: 'Přidat akci' }
+    { href: '/admin', label: 'Správa účtů' }
   ]
 
   return (
