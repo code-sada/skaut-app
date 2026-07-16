@@ -97,37 +97,116 @@ export async function createEvent(formData: FormData) {
   const userId = cookieStore.get('userId')?.value
   if (!userId) throw new Error("Musíš být přihlášený!")
 
+  // Základní info
   const title = formData.get('title') as string
   const description = formData.get('description') as string
   const location = formData.get('location') as string
-  const priceChildren = Number(formData.get('priceChildren'))
-  const priceOlder = Number(formData.get('priceOlder'))
-  const targetPatrol = formData.get('targetPatrol') as string
+  
+  // Časový harmonogram
   const dateStr = formData.get('date') as string
   const date = dateStr ? new Date(dateStr) : new Date()
+  
+  const dateEndStr = formData.get('dateEnd') as string
+  const dateEnd = dateEndStr ? new Date(dateEndStr) : null
+  
+  const meetingPoint = (formData.get('meetingPoint') as string) || null
+  const returnPoint = (formData.get('returnPoint') as string) || null
+
+  // Účast a termíny
+  const targetPatrol = (formData.get('targetPatrol') as string) || 'Všichni'
+  
+  const rsvpDeadlineStr = formData.get('rsvpDeadline') as string
+  const rsvpDeadline = rsvpDeadlineStr ? new Date(rsvpDeadlineStr) : null
+  
+  const capacityStr = formData.get('capacity') as string
+  const capacity = capacityStr ? Number(capacityStr) : null
+
+  // Finance
+  const priceChildren = Number(formData.get('priceChildren')) || 0
+  const priceOlder = Number(formData.get('priceOlder')) || 0
+  
+  const paymentDeadlineStr = formData.get('paymentDeadline') as string
+  const paymentDeadline = paymentDeadlineStr ? new Date(paymentDeadlineStr) : null
+  
+  const paymentMethod = (formData.get('paymentMethod') as string) || null
+
+  // Logistika a vybavení
+  const equipment = (formData.get('equipment') as string) || null
+  const food = (formData.get('food') as string) || null
+  const accommodation = (formData.get('accommodation') as string) || null
+
+  // Kontakty
+  const leaderInCharge = (formData.get('leaderInCharge') as string) || null
+  const leaderContact = (formData.get('leaderContact') as string) || null
 
   await prisma.event.create({
-    data: { title, description, location, date, priceChildren, priceOlder, targetPatrol, createdById: userId }
+    data: { 
+      title, description, location, date, dateEnd, meetingPoint, returnPoint,
+      targetPatrol, rsvpDeadline, capacity, priceChildren, priceOlder,
+      paymentDeadline, paymentMethod, equipment, food, accommodation,
+      leaderInCharge, leaderContact, createdById: userId 
+    }
   })
+  
   revalidatePath('/')
   redirect('/')
 }
 
 export async function updateEvent(formData: FormData) {
   const id = formData.get('id') as string
+  
+  // Základní info
   const title = formData.get('title') as string
   const description = formData.get('description') as string
   const location = formData.get('location') as string
-  const priceChildren = Number(formData.get('priceChildren'))
-  const priceOlder = Number(formData.get('priceOlder'))
-  const targetPatrol = formData.get('targetPatrol') as string
+  
+  // Časový harmonogram
   const dateStr = formData.get('date') as string
   const date = dateStr ? new Date(dateStr) : new Date()
+  
+  const dateEndStr = formData.get('dateEnd') as string
+  const dateEnd = dateEndStr ? new Date(dateEndStr) : null
+  
+  const meetingPoint = (formData.get('meetingPoint') as string) || null
+  const returnPoint = (formData.get('returnPoint') as string) || null
+
+  // Účast a termíny
+  const targetPatrol = (formData.get('targetPatrol') as string) || 'Všichni'
+  
+  const rsvpDeadlineStr = formData.get('rsvpDeadline') as string
+  const rsvpDeadline = rsvpDeadlineStr ? new Date(rsvpDeadlineStr) : null
+  
+  const capacityStr = formData.get('capacity') as string
+  const capacity = capacityStr ? Number(capacityStr) : null
+
+  // Finance
+  const priceChildren = Number(formData.get('priceChildren')) || 0
+  const priceOlder = Number(formData.get('priceOlder')) || 0
+  
+  const paymentDeadlineStr = formData.get('paymentDeadline') as string
+  const paymentDeadline = paymentDeadlineStr ? new Date(paymentDeadlineStr) : null
+  
+  const paymentMethod = (formData.get('paymentMethod') as string) || null
+
+  // Logistika a vybavení
+  const equipment = (formData.get('equipment') as string) || null
+  const food = (formData.get('food') as string) || null
+  const accommodation = (formData.get('accommodation') as string) || null
+
+  // Kontakty
+  const leaderInCharge = (formData.get('leaderInCharge') as string) || null
+  const leaderContact = (formData.get('leaderContact') as string) || null
 
   await prisma.event.update({
     where: { id },
-    data: { title, description, location, date, priceChildren, priceOlder, targetPatrol }
+    data: { 
+      title, description, location, date, dateEnd, meetingPoint, returnPoint,
+      targetPatrol, rsvpDeadline, capacity, priceChildren, priceOlder,
+      paymentDeadline, paymentMethod, equipment, food, accommodation,
+      leaderInCharge, leaderContact
+    }
   })
+  
   revalidatePath('/')
   redirect('/')
 }

@@ -25,25 +25,48 @@ model User {
   patrol             Patrol?      @relation(fields: [patrolId], references: [id])
   createdEvents      Event[]
   attendance         Attendance[]
-  mustChangePassword Boolean      @default(true) // <--- NUTNOST ZMĚNY HESLA
+  mustChangePassword Boolean      @default(true)
 }
 
 model Event {
-  id            String       @id @default(uuid())
-  title         String
-  description   String
-  date          DateTime
-  location      String
-  createdAt     DateTime     @default(now())
-  isForAll      Boolean      @default(true) 
-  allowedPatrols Patrol[]
-  createdById   String
-  createdBy     User         @relation(fields: [createdById], references: [id])
-  attendance    Attendance[]
+  id              String       @id @default(uuid())
+  title           String
+  description     String
+  location        String
   
-  priceChildren Int          @default(0)
-  priceOlder    Int          @default(0)
-  targetPatrol  String       @default("Všichni")
+  // -- Časový harmonogram --
+  date            DateTime     // Začátek akce
+  dateEnd         DateTime?    // Konec akce
+  meetingPoint    String?      // Kde a v kolik je sraz
+  returnPoint     String?      // Kde a v kolik je návrat
+  
+  // -- Účast a termíny --
+  targetPatrol    String       @default("Všichni")
+  rsvpDeadline    DateTime?    // Do kdy se přihlásit
+  capacity        Int?         // Maximální kapacita
+  
+  // -- Finance --
+  priceChildren   Int          @default(0)
+  priceOlder      Int          @default(0)
+  paymentDeadline DateTime?    // Do kdy zaplatit
+  paymentMethod   String?      // Způsob platby (hotově, účet...)
+  
+  // -- Logistika --
+  equipment       String?      // Co s sebou
+  food            String?      // Strava
+  accommodation   String?      // Ubytování
+  
+  // -- Kontakty --
+  leaderInCharge  String?      // Zodpovědný vedoucí
+  leaderContact   String?      // Kontakt (telefon/email)
+
+  // -- Vztahy a metadata --
+  createdAt       DateTime     @default(now())
+  isForAll        Boolean      @default(true) 
+  allowedPatrols  Patrol[]
+  createdById     String
+  createdBy       User         @relation(fields: [createdById], references: [id])
+  attendance      Attendance[]
 }
 
 model Attendance {
@@ -51,8 +74,10 @@ model Attendance {
   userId    String
   eventId   String
   status    String   @default("PENDING") 
+  note      String?  // <--- Poznámka od rodičů (alergie, odvoz...)
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
   @@unique([userId, eventId]) 
 }
