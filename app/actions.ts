@@ -275,3 +275,45 @@ export async function deleteUser(formData: FormData) {
   })
   revalidatePath('/admin')
 }
+
+export async function saveAttendance(formData: FormData) {
+  const eventId = formData.get('eventId') as string
+  const status = formData.get('status') as string
+  const note = (formData.get('note') as string) || ''
+
+  const cookieStore = await cookies()
+  const userId = cookieStore.get('userId')?.value
+
+  if (!userId || !eventId || !status) {
+    throw new Error('Chybí data pro uložení účasti.')
+  }
+
+  // Nejdřív se podíváme, jestli už se uživatel k této akci nevyjádřil dřív
+  const existingAttendance = await prisma.attendance.findFirst({
+    where: {
+      userId: userId,
+      eventId: eventId
+    }
+  })
+
+  if (existingAttendance) {
+    // Pokud už existuje, jen ho updatneme (např. změnil názor nebo přidal poznámku)
+    await prisma.attendance.update({
+      where: { id: existingAttendance.id },
+      data: { status, note }
+    })
+  } else {
+    // Pokud se vyjadřuje poprvé, vytvoříme nový záznam
+    await prisma.attendance.create({
+      data: {
+        userId,
+        eventId,
+        status,
+        note
+      }
+    })
+  }
+
+  // Po uložení ihned obnovíme stránku, ať se změna projeví
+  revalidatePath('/')
+}

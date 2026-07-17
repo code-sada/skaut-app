@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { Tent, Plus } from 'lucide-react'
-import { deleteEvent, saveAttendance } from './actions' // Přidán import saveAttendance
+import { deleteEvent, saveAttendance } from '../actions' // Přidán import saveAttendance
 import EventCard from '@/components/EventCard'
 
 const prisma = new PrismaClient()
