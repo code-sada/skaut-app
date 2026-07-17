@@ -11,7 +11,8 @@ model Patrol {
   id      String  @id @default(uuid())
   name    String  @unique 
   users   User[]          
-  events  Event[]         
+  events  Event[]    
+  meetings Meeting[]      
 }
 
 model User {
@@ -26,6 +27,8 @@ model User {
   createdEvents      Event[]
   attendance         Attendance[]
   mustChangePassword Boolean      @default(true)
+  meetingAttendance MeetingAttendance[]
+  meetingMessages MeetingMessage[]
 }
 
 model Event {
@@ -80,4 +83,43 @@ model Attendance {
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   
   @@unique([userId, eventId]) 
+}
+
+model Meeting {
+  id          String   @id @default(uuid())
+  title       String   // Např. "Schůzka Vlků"
+  date        DateTime // PŘESNÉ datum a čas začátku (pro ten 2h limit)
+  endTime     String   // Čas konce (např. "18:00")
+  location    String   @default("Klubovna")
+  
+  patrolId    String
+  patrol      Patrol   @relation(fields: [patrolId], references: [id])
+  
+  attendance  MeetingAttendance[]
+  messages    MeetingMessage[]
+  
+  createdAt   DateTime @default(now())
+}
+
+model MeetingAttendance {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  status    String   // "GOING", "NOT_GOING"
+  note      String?  // Omluvenka
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, meetingId])
+}
+
+model MeetingMessage {
+  id        String   @id @default(uuid())
+  text      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
