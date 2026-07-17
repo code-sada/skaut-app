@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
 import MeetingCard from '@/components/MeetingCard'
 import AddMeetingForm from '@/components/AddMeetingForm' // Vytvoříme níže
-import { generateMeetings, saveMeetingAttendance, sendMeetingMessage } from './actions'
+import { deleteMeeting, generateMeetings, saveMeetingAttendance, sendMeetingMessage, updateMeeting } from './actions'
 
 const prisma = new PrismaClient()
 
@@ -64,8 +64,11 @@ export default async function SchuzkyPage() {
               meeting={meeting} 
               currentUser={currentUser}
               canManage={canManage}
+              patrols={patrols}
               saveAttendance={saveMeetingAttendance}
               sendMessage={sendMeetingMessage}
+              deleteMeetingAction={deleteMeeting}
+              updateMeetingAction={updateMeeting}
             />
           ))
         )}

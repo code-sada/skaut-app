@@ -91,6 +91,7 @@ model Meeting {
   date        DateTime // PŘESNÉ datum a čas začátku (pro ten 2h limit)
   endTime     String   // Čas konce (např. "18:00")
   location    String   @default("Klubovna")
+  comment     String?
   
   patrolId    String
   patrol      Patrol   @relation(fields: [patrolId], references: [id])

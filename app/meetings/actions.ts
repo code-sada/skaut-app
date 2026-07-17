@@ -41,7 +41,41 @@ export async function generateMeetings(formData: FormData) {
   }
 
   await prisma.meeting.createMany({ data: newMeetings })
-  revalidatePath('/schuzky')
+  revalidatePath('/meetings')
+}
+
+export async function deleteMeeting(formData: FormData) {
+  const id = formData.get('id') as string
+  if (!id) return
+
+  await prisma.meeting.delete({ where: { id } })
+  revalidatePath('/meetings')
+}
+
+export async function updateMeeting(formData: FormData) {
+  const id = formData.get('id') as string
+  const title = formData.get('title') as string
+  const patrolId = formData.get('patrolId') as string
+  const dateStr = formData.get('date') as string
+  const endTime = formData.get('endTime') as string
+  const location = (formData.get('location') as string) || 'Klubovna'
+  const comment = (formData.get('comment') as string) || null
+
+  if (!id) return
+
+  await prisma.meeting.update({
+    where: { id },
+    data: {
+      title,
+      patrolId,
+      date: dateStr ? new Date(dateStr) : new Date(),
+      endTime,
+      location,
+      comment
+    }
+  })
+
+  revalidatePath('/meetings')
 }
 
 // 2. Uložení docházky
@@ -68,7 +102,7 @@ export async function saveMeetingAttendance(formData: FormData) {
       data: { userId, meetingId, status, note }
     })
   }
-  revalidatePath('/schuzky')
+  revalidatePath('/meetings')
 }
 
 // 3. Odeslání zprávy do chatu
@@ -83,5 +117,5 @@ export async function sendMeetingMessage(formData: FormData) {
   await prisma.meetingMessage.create({
     data: { text, userId, meetingId }
   })
-  revalidatePath('/schuzky')
+  revalidatePath('/meetings')
 }

@@ -99,7 +99,7 @@ export default async function DashboardPage() {
              </div>
           </div>
 
-          <Link href="/schuzky" className="mt-4 w-full flex items-center justify-center gap-2 border-2 border-gray-100 hover:border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold transition-colors">
+          <Link href="/meetings" className="mt-4 w-full flex items-center justify-center gap-2 border-2 border-gray-100 hover:border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold transition-colors">
             Více informací <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

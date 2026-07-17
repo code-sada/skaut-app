@@ -17,7 +17,7 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
 
   const nav = [
     { href: '/', label: 'Přehled', icon: Home },
-    { href: '/meatings', label: 'Schůzky', icon: Compass },
+    { href: '/meetings', label: 'Schůzky', icon: Compass },
     { href: '/chat', label: 'Chat', icon: MessageCircle },
     { href: '/expedition', label: 'Výpravy', icon: MapPin },
     { href: '/calendar', label: 'Kalendář akcí', icon: Calendar },
