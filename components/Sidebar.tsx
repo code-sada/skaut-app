@@ -1,7 +1,7 @@
 "use client"
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Calendar, Shield, Users, Folder, Settings, Tent, LogOut, MapPin, MessageCircle, CheckSquare } from 'lucide-react'
+import { Home, Calendar, Shield, Users, Folder, Settings, Tent, LogOut, MapPin, MessageCircle, CheckSquare, Compass } from 'lucide-react'
 
 // Překladový slovník pro role
 const roleTranslations: { [key: string]: string } = {
@@ -17,13 +17,13 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
 
   const nav = [
     { href: '/', label: 'Přehled', icon: Home },
-    { href: '/wip', label: 'Schůzky', icon: MessageCircle },
-    { href: '/wip', label: 'Úkoly', icon: CheckSquare },
+    { href: '/meatings', label: 'Schůzky', icon: Compass },
+    { href: '/chat', label: 'Chat', icon: MessageCircle },
     { href: '/expedition', label: 'Výpravy', icon: MapPin },
-    { href: '/wip', label: 'Kalendář akcí', icon: Calendar },
-    { href: '/wip', label: 'Družiny', icon: Shield },
-    { href: '/wip', label: 'Členové', icon: Users },
-    { href: '/wip', label: 'Dokumenty', icon: Folder }
+    { href: '/calendar', label: 'Kalendář akcí', icon: Calendar },
+    { href: '/patrols', label: 'Družiny', icon: Shield },
+    { href: '/members', label: 'Členové', icon: Users },
+    { href: '/documents', label: 'Dokumenty', icon: Folder }
   ]
 
   function isActive(href: string) {
