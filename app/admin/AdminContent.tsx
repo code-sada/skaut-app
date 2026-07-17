@@ -2,6 +2,22 @@
 import { useState } from 'react'
 import { Trash2, ShieldAlert, Plus, Pencil, Key, Mail, X, Users } from 'lucide-react'
 
+// Překladový slovník pro role
+const roleTranslations: { [key: string]: string } = {
+  child: 'Dítě',
+  parent: 'Rodič',
+  user: 'Vedoucí',
+  admin: 'Administrátor'
+}
+
+// Slovník pro barvy štítků
+const roleColors: { [key: string]: string } = {
+  admin: 'bg-amber-100 text-amber-700',
+  user: 'bg-blue-100 text-blue-700', // Krásná modrá pro vedoucí
+  parent: 'bg-gray-100 text-gray-700', // Šedá pro rodiče
+  child: 'bg-gray-100 text-gray-700' // Šedá pro děti
+}
+
 export default function AdminContent({ users, patrols, currentUser, createUser, editUser, forcePasswordReset, deleteUser }: any) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
@@ -40,8 +56,9 @@ export default function AdminContent({ users, patrols, currentUser, createUser, 
             </div>
 
             <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 text-xs font-bold rounded-full ${user.role === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'}`}>
-                {user.role}
+              {/* Zde se aplikuje barva podle role a název podle překladu */}
+              <span className={`px-3 py-1 text-xs font-bold rounded-full ${roleColors[user.role] || 'bg-gray-100 text-gray-700'}`}>
+                {roleTranslations[user.role] || user.role}
               </span>
               {user.mustChangePassword && (
                 <span className="px-3 py-1 text-xs font-bold rounded-full bg-red-50 text-red-700">Vyžadována změna hesla</span>
