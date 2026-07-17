@@ -3,6 +3,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Calendar, Shield, Users, Folder, Settings, Tent, LogOut } from 'lucide-react'
 
+// Překladový slovník pro role
+const roleTranslations: { [key: string]: string } = {
+  child: 'Dítě',
+  parent: 'Rodič',
+  user: 'Vedoucí',
+  admin: 'Administrátor'
+}
+
 export default function Sidebar({ currentUser, logoutUser }: any) {
   let pathname = usePathname() || '/'
   pathname = pathname.replace(/\/+$|^$/g, '') || '/'
@@ -45,7 +53,7 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
           })}
         </nav>
 
-        {/* ADMIN SECTION (placed below nav, above profile) */}
+        {/* ADMIN SECTION */}
         {currentUser?.role === 'admin' && (
           <div className="px-4 pb-2">
             <div className="pt-4 border-t border-gray-100">
@@ -63,11 +71,13 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
           <div className="w-10 h-10 rounded-full bg-blue-50 text-[#1a237e] font-bold flex items-center justify-center group-hover:bg-blue-100 transition-colors">{getInitials(currentUser?.name || '')}</div>
           <div className="flex flex-col">
             <span className="text-sm font-bold text-gray-900 leading-tight group-hover:text-[#1a237e] transition-colors whitespace-nowrap overflow-hidden text-ellipsis w-32">{currentUser?.name}</span>
-            <span className="text-xs text-gray-400 capitalize">{currentUser?.role === 'admin' ? 'Admin oddílu' : currentUser?.role}</span>
+            {/* Zde se nyní vypisuje hezký český název role ze slovníku */}
+            <span className="text-xs text-gray-400 capitalize">
+              {roleTranslations[currentUser?.role] || currentUser?.role}
+            </span>
           </div>
         </Link>
 
-        {/* OPRAVENÉ ODHLAŠOVACÍ TLAČÍTKO: Pouze červená ikonka bez textu a pozadí */}
         {logoutUser && (
           <form action={logoutUser} className="ml-3 shrink-0">
             <button 
