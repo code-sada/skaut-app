@@ -65,7 +65,7 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          <Link href="/vypravy" className="mt-6 w-full flex items-center justify-center gap-2 border-2 border-gray-200 hover:border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-bold transition-colors">
+          <Link href="/expedition" className="mt-6 w-full flex items-center justify-center gap-2 border-2 border-gray-200 hover:border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-bold transition-colors">
             Zobrazit všechny <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          <Link href="/schuzky" className="mt-6 w-full flex items-center justify-center gap-2 border-2 border-gray-200 hover:border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-bold transition-colors">
+          <Link href="/meetings" className="mt-6 w-full flex items-center justify-center gap-2 border-2 border-gray-200 hover:border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-bold transition-colors">
             Více informací <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

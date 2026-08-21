@@ -8,10 +8,10 @@ generator client {
 }
 
 model Patrol {
-  id      String  @id @default(uuid())
-  name    String  @unique 
-  users   User[]          
-  events  Event[]    
+  id       String    @id @default(uuid())
+  name     String    @unique 
+  users    User[]          
+  events   Event[]    
   meetings Meeting[]      
 }
 
@@ -27,8 +27,31 @@ model User {
   createdEvents      Event[]
   attendance         Attendance[]
   mustChangePassword Boolean      @default(true)
-  meetingAttendance MeetingAttendance[]
-  meetingMessages MeetingMessage[]
+  meetingAttendance  MeetingAttendance[]
+  meetingMessages    MeetingMessage[]
+  
+  birthDate          DateTime?
+  healthNote         String?
+  
+  // -- NOVÉ: Detailní kontakty na rodinu podle nákresu --
+  parentPhone        String?      // Hlavní/obecné číslo
+  motherName         String?
+  motherPhone        String?
+  fatherName         String?
+  fatherPhone        String?
+  otherGuardianName  String?
+  otherGuardianPhone String?
+  
+  // Rodinné vazby 
+  parents            User[]       @relation("FamilyRelation")
+  children           User[]       @relation("FamilyRelation")
+
+  // Vazba pro sourozence (Many-to-Many sami na sebe)
+  siblings           User[]       @relation("Siblings")
+  siblingOf          User[]       @relation("Siblings")
+
+  // Úpravy čekající na schválení
+  pendingUpdates     PendingUpdate[]
 }
 
 model Event {
@@ -37,33 +60,27 @@ model Event {
   description     String
   location        String
   
-  // -- Časový harmonogram --
-  date            DateTime     // Začátek akce
-  dateEnd         DateTime?    // Konec akce
-  meetingPoint    String?      // Kde a v kolik je sraz
-  returnPoint     String?      // Kde a v kolik je návrat
+  date            DateTime     
+  dateEnd         DateTime?    
+  meetingPoint    String?      
+  returnPoint     String?      
   
-  // -- Účast a termíny --
   targetPatrol    String       @default("Všichni")
-  rsvpDeadline    DateTime?    // Do kdy se přihlásit
-  capacity        Int?         // Maximální kapacita
+  rsvpDeadline    DateTime?    
+  capacity        Int?         
   
-  // -- Finance --
   priceChildren   Int          @default(0)
   priceOlder      Int          @default(0)
-  paymentDeadline DateTime?    // Do kdy zaplatit
-  paymentMethod   String?      // Způsob platby (hotově, účet...)
+  paymentDeadline DateTime?    
+  paymentMethod   String?      
   
-  // -- Logistika --
-  equipment       String?      // Co s sebou
-  food            String?      // Strava
-  accommodation   String?      // Ubytování
+  equipment       String?      
+  food            String?      
+  accommodation   String?      
   
-  // -- Kontakty --
-  leaderInCharge  String?      // Zodpovědný vedoucí
-  leaderContact   String?      // Kontakt (telefon/email)
+  leaderInCharge  String?      
+  leaderContact   String?      
 
-  // -- Vztahy a metadata --
   createdAt       DateTime     @default(now())
   isForAll        Boolean      @default(true) 
   allowedPatrols  Patrol[]
@@ -77,7 +94,7 @@ model Attendance {
   userId    String
   eventId   String
   status    String   @default("PENDING") 
-  note      String?  // <--- Poznámka od rodičů (alergie, odvoz...)
+  note      String?  
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -87,9 +104,9 @@ model Attendance {
 
 model Meeting {
   id          String   @id @default(uuid())
-  title       String   // Např. "Schůzka Vlků"
-  date        DateTime // PŘESNÉ datum a čas začátku (pro ten 2h limit)
-  endTime     String   // Čas konce (např. "18:00")
+  title       String   
+  date        DateTime 
+  endTime     String   
   location    String   @default("Klubovna")
   comment     String?
   
@@ -108,8 +125,8 @@ model MeetingAttendance {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   meetingId String
   meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  status    String   // "GOING", "NOT_GOING"
-  note      String?  // Omluvenka
+  status    String   
+  note      String?  
   updatedAt DateTime @updatedAt
   
   @@unique([userId, meetingId])
@@ -123,4 +140,13 @@ model MeetingMessage {
   meetingId String
   meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model PendingUpdate {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestedBy String
+  data        String   
+  createdAt   DateTime @default(now())
 }
