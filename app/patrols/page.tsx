@@ -1,19 +1,37 @@
-import Link from 'next/link'
-import { Hammer } from 'lucide-react'
+import { PrismaClient } from "@prisma/client";
+import { cookies } from "next/headers";
+import PatrolsClient from "./PatrolsClient";
+import { updatePatrolInfo } from "@/app/actions";
 
-export default function WorkInProgressPage() {
+const prisma = new PrismaClient();
+
+export default async function PatrolsPage() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("userId")?.value;
+
+  let currentUser = null;
+  if (userId) {
+    currentUser = await prisma.user.findUnique({ where: { id: userId } });
+  }
+
+  const role = currentUser?.role;
+  const canManage = role === "admin" || role === "user" || role === "leader";
+
+  // Stáhneme družiny včetně jejich členů a nových polí pro schůzky
+  const patrols = await prisma.patrol.findMany({
+    include: {
+      users: { select: { id: true, name: true, role: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-10">
-      <div className="w-24 h-24 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-6">
-        <Hammer className="w-12 h-12" />
-      </div>
-      <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Pracujeme na tom! 🚧</h1>
-      <p className="text-gray-500 mb-8 max-w-md text-lg">
-        Tato sekce se momentálně připravuje. Brzy tady najdeš nové super funkce pro správu oddílu.
-      </p>
-      <Link href="/" className="px-6 py-3 bg-[#00c853] hover:bg-[#00b34a] text-white font-bold rounded-xl transition-colors shadow-sm">
-        Zpět na přehled
-      </Link>
+    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6 pb-20">
+      <PatrolsClient
+        patrols={patrols}
+        canManage={canManage}
+        updatePatrolInfo={updatePatrolInfo}
+      />
     </div>
-  )
+  );
 }

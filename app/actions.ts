@@ -367,3 +367,37 @@ export async function createPendingMemberUpdate(formData: FormData) {
   revalidatePath("/members");
   return { success: true };
 }
+
+// --- DOKUMENTY ---
+export async function createDocument(formData: FormData) {
+  const name = formData.get("name") as string;
+  const url = formData.get("url") as string;
+  const category = formData.get("category") as string;
+  const type = formData.get("type") as string;
+
+  if (!name || !url || !category) return;
+
+  await prisma.document.create({
+    data: { name, url, category, type: type || "pdf" },
+  });
+
+  // Zde bys případně mohl zavolat revalidatePath('/documents')
+}
+
+export async function deleteDocument(id: string) {
+  await prisma.document.delete({ where: { id } });
+}
+
+// --- DRUŽINY (Úprava časů schůzek) ---
+export async function updatePatrolInfo(formData: FormData) {
+  const id = formData.get("id") as string;
+  const schedule = formData.get("schedule") as string;
+  const location = formData.get("location") as string;
+
+  if (!id) return;
+
+  await prisma.patrol.update({
+    where: { id },
+    data: { schedule, location },
+  });
+}

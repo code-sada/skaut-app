@@ -8,11 +8,16 @@ generator client {
 }
 
 model Patrol {
-  id       String    @id @default(uuid())
-  name     String    @unique 
-  users    User[]          
-  events   Event[]    
-  meetings Meeting[]      
+  id          String    @id @default(cuid())
+  name        String    @unique
+  schedule    String?   // Např. "Středa 16:30 - 18:00"
+  location    String?   // Např. "Klubovna"
+  
+  users       User[]
+  
+  // Tyto dva řádky Prismě chyběly pro propojení:
+  events      Event[]
+  meetings    Meeting[]
 }
 
 model User {
@@ -162,5 +167,14 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   link      String?  
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  category  String   // Např. "Pro vedoucí", "Tábor", "Přihlášky"
+  type      String   @default("pdf") // "pdf" nebo "link"
   createdAt DateTime @default(now())
 }
