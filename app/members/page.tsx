@@ -10,15 +10,13 @@ export default async function MembersPage() {
   const cookieStore = await cookies();
   const currentUserId = cookieStore.get("userId")?.value;
 
-  // Bezpečnostní kontrola: jakou má uživatel roli?
   const currentUser = currentUserId
     ? await prisma.user.findUnique({ where: { id: currentUserId } })
     : null;
 
   const userRole = currentUser?.role || "MEMBER";
-  const isLeader = userRole === "ADMIN" || userRole === "LEADER";
+  const isLeader = userRole === "admin" || userRole === "LEADER";
 
-  // Stáhneme všechny uživatele s družinou a obousměrnou vazbou na sourozence
   const allUsers = await prisma.user.findMany({
     include: {
       patrol: true,
@@ -29,7 +27,6 @@ export default async function MembersPage() {
 
   const patrols = await prisma.patrol.findMany();
 
-  // Pro adminy a vedoucí stáhneme změny čekající na schválení (členům to nestahujeme)
   const pendingUpdates = isLeader
     ? await prisma.pendingUpdate.findMany({
         include: { user: true },
@@ -47,7 +44,6 @@ export default async function MembersPage() {
         </p>
       </div>
 
-      {/* --- NOTIFIKACE: ČEKÁ NA SCHVÁLENÍ (Ukáže se jen vedoucím) --- */}
       {showApprovals && (
         <div className="bg-orange-50 border-2 border-orange-300 p-6 rounded-2xl shadow-sm">
           <h2 className="text-lg font-extrabold text-orange-900 flex items-center gap-2 mb-4">
@@ -67,6 +63,12 @@ export default async function MembersPage() {
                       Úprava pro: {update.user.name}
                     </p>
                     <div className="text-sm text-gray-700 mt-2 space-y-1">
+                      {parsedData.name !== undefined && (
+                        <p>
+                          Jméno:{" "}
+                          <span className="font-bold">{parsedData.name}</span>
+                        </p>
+                      )}
                       {parsedData.motherName !== undefined && (
                         <p>
                           Matka:{" "}
@@ -91,11 +93,27 @@ export default async function MembersPage() {
                           </span>
                         </p>
                       )}
+                      {parsedData.city !== undefined && (
+                        <p>
+                          Bydliště:{" "}
+                          <span className="font-bold">
+                            {parsedData.address}, {parsedData.city}
+                          </span>
+                        </p>
+                      )}
                       {parsedData.healthNote !== undefined && (
                         <p>
                           Zdraví:{" "}
                           <span className="font-bold text-red-600">
                             {parsedData.healthNote || "Smazáno"}
+                          </span>
+                        </p>
+                      )}
+                      {parsedData.dietaryRestrictions !== undefined && (
+                        <p>
+                          Dieta:{" "}
+                          <span className="font-bold text-orange-600">
+                            {parsedData.dietaryRestrictions || "Smazáno"}
                           </span>
                         </p>
                       )}
@@ -144,7 +162,6 @@ export default async function MembersPage() {
         </div>
       )}
 
-      {/* Klientská komponenta s filtry */}
       <MembersClient
         users={allUsers}
         patrols={patrols}

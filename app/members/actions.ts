@@ -5,7 +5,6 @@ import { cookies } from "next/headers";
 
 const prisma = new PrismaClient();
 
-// Pomocná funkce pro zjištění role aktuálně přihlášeného (zabrání zneužití dětmi)
 async function getCurrentUserRole() {
   const cookieStore = await cookies();
   const userId = cookieStore.get("userId")?.value;
@@ -14,14 +13,19 @@ async function getCurrentUserRole() {
   return user?.role;
 }
 
-// 1. Rodič/Člen navrhne změnu
 export async function requestProfileUpdate(formData: FormData) {
   const userId = formData.get("userId") as string;
   const requestedBy = formData.get("requestedBy") as string;
   const birthDateStr = formData.get("birthDate") as string;
 
   const updates = {
+    name: formData.get("name"),
+    patrolId: formData.get("patrolId") || null,
     healthNote: formData.get("healthNote"),
+    dietaryRestrictions: formData.get("dietaryRestrictions"),
+    address: formData.get("address"),
+    city: formData.get("city"),
+    postalCode: formData.get("postalCode"),
     parentPhone: formData.get("parentPhone"),
     motherName: formData.get("motherName"),
     motherPhone: formData.get("motherPhone"),
@@ -44,10 +48,9 @@ export async function requestProfileUpdate(formData: FormData) {
   return { success: true };
 }
 
-// 2. Vedoucí SCHVÁLÍ úpravu (Zabezpečeno!)
 export async function approveUpdate(updateId: string) {
   const role = await getCurrentUserRole();
-  if (role !== "ADMIN" && role !== "LEADER") {
+  if (role !== "admin" && role !== "LEADER") {
     return { success: false, error: "Nemáte oprávnění schvalovat změny." };
   }
 
@@ -68,10 +71,9 @@ export async function approveUpdate(updateId: string) {
   return { success: true };
 }
 
-// 3. Vedoucí ZAMÍTNE úpravu (Zabezpečeno!)
 export async function rejectUpdate(updateId: string) {
   const role = await getCurrentUserRole();
-  if (role !== "ADMIN" && role !== "LEADER") {
+  if (role !== "admin" && role !== "LEADER") {
     return { success: false, error: "Nemáte oprávnění zamítat změny." };
   }
 
@@ -80,7 +82,6 @@ export async function rejectUpdate(updateId: string) {
   return { success: true };
 }
 
-// 4. Vytvoření nového člena / dítěte
 export async function createMember(formData: FormData) {
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -96,8 +97,11 @@ export async function createMember(formData: FormData) {
   const otherGuardianPhone = formData.get("otherGuardianPhone") as string;
 
   const healthNote = formData.get("healthNote") as string;
+  const dietaryRestrictions = formData.get("dietaryRestrictions") as string;
+  const address = formData.get("address") as string;
+  const city = formData.get("city") as string;
+  const postalCode = formData.get("postalCode") as string;
 
-  // ZKONTROLUJEME, JESTLI EMAIL UŽ NEEXISTUJE - vracíme objekt s chybou
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
@@ -109,7 +113,6 @@ export async function createMember(formData: FormData) {
     };
   }
 
-  // POKUD JE EMAIL VOLNÝ, ULOŽÍME HO
   await prisma.user.create({
     data: {
       name,
@@ -126,6 +129,10 @@ export async function createMember(formData: FormData) {
       otherGuardianName: otherGuardianName || null,
       otherGuardianPhone: otherGuardianPhone || null,
       healthNote: healthNote || null,
+      dietaryRestrictions: dietaryRestrictions || null,
+      address: address || null,
+      city: city || null,
+      postalCode: postalCode || null,
       mustChangePassword: true,
     },
   });

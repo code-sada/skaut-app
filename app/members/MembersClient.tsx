@@ -7,8 +7,6 @@ import {
   Phone,
   Plus,
   X,
-  User as UserIcon,
-  Users,
   FileText,
 } from "lucide-react";
 import { requestProfileUpdate, createMember } from "./actions";
@@ -29,7 +27,6 @@ export default function MembersClient({
   const [patrolFilter, setPatrolFilter] = useState("");
   const [ageFilter, setAgeFilter] = useState("");
 
-  // Modaly a stavy
   const [editingUser, setEditingUser] = useState<any>(null);
   const [detailUser, setDetailUser] = useState<any>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -51,7 +48,6 @@ export default function MembersClient({
     return matchName && matchPatrol && matchAge && u.role === "MEMBER";
   });
 
-  // Handlery pro odchycení chyb z akcí
   const handleCreateMember = async (formData: FormData) => {
     setFormError(null);
     const result = await createMember(formData);
@@ -67,11 +63,10 @@ export default function MembersClient({
     if (result?.success) setEditingUser(null);
   };
 
-  const isLeader = currentUserRole === "ADMIN" || currentUserRole === "LEADER";
+  const isLeader = currentUserRole === "admin" || currentUserRole === "LEADER";
 
   return (
     <div className="space-y-6">
-      {/* FILTRY A TLAČÍTKO PŘIDAT */}
       <div className="bg-white p-4 rounded-2xl border-2 border-gray-200 flex flex-col md:flex-row gap-4 shadow-sm items-center">
         <div className="flex-1 relative w-full">
           <Search className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
@@ -118,7 +113,6 @@ export default function MembersClient({
         )}
       </div>
 
-      {/* SEZNAM DĚTÍ - KLIKNUTÍM SE OTEVŘE DETAIL */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredUsers.map((user: any) => (
           <div
@@ -151,12 +145,12 @@ export default function MembersClient({
                 <HeartPulse className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                 <span
                   className={
-                    user.healthNote
+                    user.healthNote || user.dietaryRestrictions
                       ? "font-bold text-gray-900 line-clamp-1"
                       : "text-gray-400 italic"
                   }
                 >
-                  {user.healthNote || "Bez zdravotních záznamů"}
+                  {user.healthNote || user.dietaryRestrictions || "Bez záznamů"}
                 </span>
               </p>
             </div>
@@ -169,7 +163,6 @@ export default function MembersClient({
         )}
       </div>
 
-      {/* MODAL PRO DETAIL DÍTĚTE (PODLE NÁKRESU) */}
       {detailUser && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
@@ -209,7 +202,6 @@ export default function MembersClient({
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Sekce: Kontakty na rodiče */}
               <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden">
                 <div className="bg-gray-50 p-4 border-b-2 border-gray-200 flex items-center gap-2">
                   <Phone className="w-5 h-5 text-gray-600" />
@@ -264,19 +256,31 @@ export default function MembersClient({
                 </div>
               </div>
 
-              {/* Sekce: Zdraví a Informace */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-red-50 rounded-2xl border-2 border-red-200 overflow-hidden">
                   <div className="bg-red-100 p-4 border-b-2 border-red-200 flex items-center gap-2">
                     <HeartPulse className="w-5 h-5 text-red-600" />
                     <h3 className="font-extrabold text-lg text-red-900">
-                      Zdravotní upozornění
+                      Zdraví a strava
                     </h3>
                   </div>
-                  <div className="p-4">
-                    <p className="text-red-800 font-bold whitespace-pre-wrap">
-                      {detailUser.healthNote || "Žádné záznamy."}
-                    </p>
+                  <div className="p-4 space-y-4">
+                    <div>
+                      <span className="text-red-900 font-bold block mb-1">
+                        Zdravotní upozornění:
+                      </span>
+                      <p className="text-red-800 whitespace-pre-wrap">
+                        {detailUser.healthNote || "Žádné záznamy."}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-red-900 font-bold block mb-1">
+                        Dietní omezení / Alergie na jídlo:
+                      </span>
+                      <p className="text-red-800 whitespace-pre-wrap">
+                        {detailUser.dietaryRestrictions || "Žádné záznamy."}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -312,6 +316,14 @@ export default function MembersClient({
                         {detailUser.patrol?.name || "-"}
                       </span>
                     </p>
+                    <p className="flex justify-between border-b border-gray-200 pb-2">
+                      <span className="text-gray-500 font-bold">Bydliště:</span>{" "}
+                      <span className="font-extrabold text-gray-900 text-right">
+                        {detailUser.address
+                          ? `${detailUser.address}, ${detailUser.city} ${detailUser.postalCode}`
+                          : "-"}
+                      </span>
+                    </p>
 
                     <div>
                       <span className="text-gray-500 font-bold block mb-1">
@@ -341,7 +353,6 @@ export default function MembersClient({
         </div>
       )}
 
-      {/* MODAL PRO PŘIDÁNÍ NOVÉHO ČLENA */}
       {isAddModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
@@ -417,6 +428,45 @@ export default function MembersClient({
               </div>
 
               <div className="border-t-2 border-gray-100 pt-4">
+                <h3 className="font-extrabold text-gray-900 mb-4">Bydliště</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-bold text-gray-800 mb-1">
+                      Ulice a č.p.
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      placeholder="Skautská 123"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-800 mb-1">
+                      Město
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      placeholder="Brno"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-800 mb-1">
+                      PSČ
+                    </label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      placeholder="602 00"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t-2 border-gray-100 pt-4">
                 <h3 className="font-extrabold text-gray-900 mb-4">
                   Kontakty na rodinu
                 </h3>
@@ -477,15 +527,27 @@ export default function MembersClient({
                 </div>
               </div>
 
-              <div className="border-t-2 border-gray-100 pt-4">
-                <label className="block text-sm font-bold text-gray-800 mb-1">
-                  Zdravotní poznámka
-                </label>
-                <textarea
-                  name="healthNote"
-                  placeholder="Alergie, léky..."
-                  className={`${inputClass} h-20`}
-                />
+              <div className="border-t-2 border-gray-100 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    Zdravotní upozornění
+                  </label>
+                  <textarea
+                    name="healthNote"
+                    placeholder="Alergie, léky..."
+                    className={`${inputClass} h-20`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    Dietní omezení / Alergie jídlo
+                  </label>
+                  <textarea
+                    name="dietaryRestrictions"
+                    placeholder="Bezlepková dieta, ořechy..."
+                    className={`${inputClass} h-20`}
+                  />
+                </div>
               </div>
 
               <button
@@ -499,7 +561,6 @@ export default function MembersClient({
         </div>
       )}
 
-      {/* MODAL PRO ÚPRAVU (EXISTUJÍCÍ) */}
       {editingUser && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
@@ -529,22 +590,95 @@ export default function MembersClient({
                 value={currentUserId || "unknown"}
               />
 
-              <div>
-                <label className="block text-sm font-bold text-gray-800 mb-1">
-                  Datum narození
-                </label>
-                <input
-                  type="date"
-                  name="birthDate"
-                  defaultValue={
-                    editingUser.birthDate
-                      ? new Date(editingUser.birthDate)
-                          .toISOString()
-                          .split("T")[0]
-                      : ""
-                  }
-                  className={inputClass}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    Jméno a příjmení
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={editingUser.name}
+                    required
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    Družina
+                  </label>
+                  <select
+                    name="patrolId"
+                    defaultValue={editingUser.patrolId || ""}
+                    className={inputClass}
+                  >
+                    <option value="">Bez družiny</option>
+                    {patrols.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    Datum narození
+                  </label>
+                  <input
+                    type="date"
+                    name="birthDate"
+                    defaultValue={
+                      editingUser.birthDate
+                        ? new Date(editingUser.birthDate)
+                            .toISOString()
+                            .split("T")[0]
+                        : ""
+                    }
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t-2 border-gray-100 pt-4">
+                <h3 className="font-extrabold text-gray-900 mb-4">Bydliště</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-bold text-gray-800 mb-1">
+                      Ulice a č.p.
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      defaultValue={editingUser.address || ""}
+                      placeholder="Skautská 123"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-800 mb-1">
+                      Město
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      defaultValue={editingUser.city || ""}
+                      placeholder="Brno"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-800 mb-1">
+                      PSČ
+                    </label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      defaultValue={editingUser.postalCode || ""}
+                      placeholder="602 00"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="border-t-2 border-gray-100 pt-4">
@@ -615,15 +749,29 @@ export default function MembersClient({
                 </div>
               </div>
 
-              <div className="border-t-2 border-gray-100 pt-4">
-                <label className="block text-sm font-bold text-gray-800 mb-1">
-                  Zdravotní upozornění
-                </label>
-                <textarea
-                  name="healthNote"
-                  defaultValue={editingUser.healthNote || ""}
-                  className={`${inputClass} h-20`}
-                />
+              <div className="border-t-2 border-gray-100 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    Zdravotní upozornění
+                  </label>
+                  <textarea
+                    name="healthNote"
+                    defaultValue={editingUser.healthNote || ""}
+                    placeholder="Astma, léky..."
+                    className={`${inputClass} h-20`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">
+                    Dietní omezení / Alergie jídlo
+                  </label>
+                  <textarea
+                    name="dietaryRestrictions"
+                    defaultValue={editingUser.dietaryRestrictions || ""}
+                    placeholder="Bezlepková dieta, ořechy..."
+                    className={`${inputClass} h-20`}
+                  />
+                </div>
               </div>
 
               <button

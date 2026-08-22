@@ -33,8 +33,7 @@ model User {
   birthDate          DateTime?
   healthNote         String?
   
-  // -- NOVÉ: Detailní kontakty na rodinu podle nákresu --
-  parentPhone        String?      // Hlavní/obecné číslo
+  parentPhone        String?
   motherName         String?
   motherPhone        String?
   fatherName         String?
@@ -42,16 +41,19 @@ model User {
   otherGuardianName  String?
   otherGuardianPhone String?
   
-  // Rodinné vazby 
   parents            User[]       @relation("FamilyRelation")
   children           User[]       @relation("FamilyRelation")
 
-  // Vazba pro sourozence (Many-to-Many sami na sebe)
   siblings           User[]       @relation("Siblings")
   siblingOf          User[]       @relation("Siblings")
 
-  // Úpravy čekající na schválení
   pendingUpdates     PendingUpdate[]
+  notifications      Notification[] // NOVÉ: Vazba na upozornění
+  
+  address             String?
+  city                String?
+  postalCode          String?
+  dietaryRestrictions String?
 }
 
 model Event {
@@ -149,4 +151,16 @@ model PendingUpdate {
   requestedBy String
   data        String   
   createdAt   DateTime @default(now())
+}
+
+// NOVÝ MODEL PRO ZVONEČEK
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?  
+  createdAt DateTime @default(now())
 }
