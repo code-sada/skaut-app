@@ -62,12 +62,13 @@ export default function MeetingCard({ meeting, currentUser, canManage, patrols, 
                 }}
                 className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                 title="Upravit schůzku"
+                aria-label={`Upravit schůzku ${meeting.title}`}
               >
                 <Pencil className="w-4 h-4" />
               </button>
               <form action={deleteMeetingAction} onSubmit={() => setIsOpen(false)}>
                 <input type="hidden" name="id" value={meeting.id} />
-                <button type="submit" className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Smazat schůzku">
+                <button type="submit" aria-label={`Smazat schůzku ${meeting.title}`} className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors" title="Smazat schůzku">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </form>
@@ -232,7 +233,7 @@ export default function MeetingCard({ meeting, currentUser, canManage, patrols, 
                   <form action={sendMessage} className="mt-4 flex gap-2">
                     <input type="hidden" name="meetingId" value={meeting.id} />
                     <input type="text" name="text" required placeholder="Napiš zprávu družině..." className={`${inputClassName} flex-1`} />
-                    <button type="submit" className="p-3 bg-[#00c853] text-white rounded-xl hover:bg-green-600 transition-colors"><Send className="w-5 h-5"/></button>
+                    <button type="submit" aria-label="Odeslat zprávu" className="p-3 bg-[#00c853] text-white rounded-xl hover:bg-green-600 transition-colors"><Send className="w-5 h-5"/></button>
                   </form>
                 </div>
               )}

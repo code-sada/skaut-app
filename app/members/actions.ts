@@ -5,18 +5,24 @@ import { cookies } from "next/headers";
 
 const prisma = new PrismaClient();
 
-async function getCurrentUserRole() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-  if (!userId) return null;
+const MANAGEMENT_ROLES = new Set(["admin", "user", "leader", "LEADER"]);
+
+async function requireUser() {
+  const userId = (await cookies()).get("userId")?.value;
+  if (!userId) throw new Error("Nepřihlášen");
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  return user?.role;
+  if (!user) throw new Error("Nepřihlášen");
+  return user;
 }
 
 export async function requestProfileUpdate(formData: FormData) {
+  const requester = await requireUser();
   const userId = formData.get("userId") as string;
-  const requestedBy = formData.get("requestedBy") as string;
   const birthDateStr = formData.get("birthDate") as string;
+
+  if (!userId || (!MANAGEMENT_ROLES.has(requester.role) && userId !== requester.id)) {
+    throw new Error("Nemáte oprávnění");
+  }
 
   const updates = {
     name: formData.get("name"),
@@ -39,7 +45,7 @@ export async function requestProfileUpdate(formData: FormData) {
   await prisma.pendingUpdate.create({
     data: {
       userId,
-      requestedBy,
+      requestedBy: requester.id,
       data: JSON.stringify(updates),
     },
   });
@@ -49,8 +55,8 @@ export async function requestProfileUpdate(formData: FormData) {
 }
 
 export async function approveUpdate(updateId: string) {
-  const role = await getCurrentUserRole();
-  if (role !== "admin" && role !== "LEADER") {
+  const requester = await requireUser();
+  if (!MANAGEMENT_ROLES.has(requester.role)) {
     return { success: false, error: "Nemáte oprávnění schvalovat změny." };
   }
 
@@ -59,7 +65,17 @@ export async function approveUpdate(updateId: string) {
   });
   if (!pending) return { success: false, error: "Nenalezeno" };
 
-  const newData = JSON.parse(pending.data);
+  const submittedData = JSON.parse(pending.data);
+  const allowedFields = [
+    "name", "patrolId", "healthNote", "dietaryRestrictions", "address", "city",
+    "postalCode", "parentPhone", "motherName", "motherPhone", "fatherName",
+    "fatherPhone", "otherGuardianName", "otherGuardianPhone", "birthDate",
+  ] as const;
+  const newData = Object.fromEntries(
+    allowedFields
+      .filter((field) => Object.prototype.hasOwnProperty.call(submittedData, field))
+      .map((field) => [field, submittedData[field]]),
+  );
 
   await prisma.user.update({
     where: { id: pending.userId },
@@ -72,8 +88,8 @@ export async function approveUpdate(updateId: string) {
 }
 
 export async function rejectUpdate(updateId: string) {
-  const role = await getCurrentUserRole();
-  if (role !== "admin" && role !== "LEADER") {
+  const requester = await requireUser();
+  if (!MANAGEMENT_ROLES.has(requester.role)) {
     return { success: false, error: "Nemáte oprávnění zamítat změny." };
   }
 
@@ -83,6 +99,10 @@ export async function rejectUpdate(updateId: string) {
 }
 
 export async function createMember(formData: FormData) {
+  const requester = await requireUser();
+  if (!MANAGEMENT_ROLES.has(requester.role)) {
+    return { success: false, error: "Nemáte oprávnění vytvářet členy." };
+  }
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const patrolId = (formData.get("patrolId") as string) || null;

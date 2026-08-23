@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import {
   Pencil,
   Trash2,
@@ -23,12 +22,14 @@ export default function EventCard({
   canManage,
   currentUser,
   saveAttendanceAction,
+  onEdit,
 }: {
   event: any;
   deleteEventAction: any;
   canManage?: boolean;
   currentUser?: any;
   saveAttendanceAction?: any;
+  onEdit?: () => void;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"info" | "participants">("info");
@@ -52,6 +53,7 @@ export default function EventCard({
     <>
       {/* KARTA AKCE NA NÁSTĚNCE */}
       <div
+        data-testid="event-card"
         onClick={() => setIsModalOpen(true)}
         className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-4 transition-all hover:shadow-md hover:border-blue-200 cursor-pointer group"
       >
@@ -91,13 +93,14 @@ export default function EventCard({
           {/* Akční tlačítka uvidí POUZE admin nebo vedoucí */}
           {canManage && (
             <div className="flex gap-1.5">
-              <Link
-                href={`/edit/${event.id}`}
+              <button
+                type="button"
+                onClick={onEdit}
                 className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                 title="Upravit akci"
               >
                 <Pencil className="w-4 h-4" />
-              </Link>
+              </button>
               <form action={deleteEventAction}>
                 <input type="hidden" name="id" value={event.id} />
                 <button

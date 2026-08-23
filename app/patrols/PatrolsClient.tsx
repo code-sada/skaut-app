@@ -45,6 +45,7 @@ export default function PatrolsClient({
               {canManage && (
                 <button
                   onClick={() => setEditingPatrol(patrol)}
+                  aria-label={`Upravit schůzky ${patrol.name}`}
                   className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                   title="Upravit schůzky"
                 >

@@ -80,7 +80,7 @@ export default async function CalendarPage() {
                 <h3 className="font-bold text-gray-900 text-lg truncate">
                   {activity.title}
                 </h3>
-                {activity.description && (
+                {activity.type === "EVENT" && activity.description && (
                   <p className="text-sm text-gray-500 truncate">
                     {activity.description}
                   </p>

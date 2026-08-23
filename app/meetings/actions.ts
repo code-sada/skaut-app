@@ -5,8 +5,25 @@ import { cookies } from 'next/headers'
 
 const prisma = new PrismaClient()
 
+const MANAGEMENT_ROLES = new Set(['admin', 'user', 'leader', 'LEADER'])
+
+async function requireUser() {
+  const userId = (await cookies()).get('userId')?.value
+  if (!userId) throw new Error('Nepřihlášen')
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) throw new Error('Nepřihlášen')
+  return user
+}
+
+async function requireManagementRole() {
+  const user = await requireUser()
+  if (!MANAGEMENT_ROLES.has(user.role)) throw new Error('Nemáte oprávnění')
+  return user
+}
+
 // 1. Vygenerování pravidelných schůzek (s vynecháním prázdnin)
 export async function generateMeetings(formData: FormData) {
+  await requireManagementRole()
   const title = formData.get('title') as string
   const patrolId = formData.get('patrolId') as string
   const startDateStr = formData.get('startDate') as string
@@ -45,6 +62,7 @@ export async function generateMeetings(formData: FormData) {
 }
 
 export async function deleteMeeting(formData: FormData) {
+  await requireManagementRole()
   const id = formData.get('id') as string
   if (!id) return
 
@@ -53,6 +71,7 @@ export async function deleteMeeting(formData: FormData) {
 }
 
 export async function updateMeeting(formData: FormData) {
+  await requireManagementRole()
   const id = formData.get('id') as string
   const title = formData.get('title') as string
   const patrolId = formData.get('patrolId') as string
@@ -80,16 +99,18 @@ export async function updateMeeting(formData: FormData) {
 
 // 2. Uložení docházky
 export async function saveMeetingAttendance(formData: FormData) {
+  const user = await requireUser()
   const meetingId = formData.get('meetingId') as string
   const status = formData.get('status') as string
   const note = (formData.get('note') as string) || ''
-  const cookieStore = await cookies()
-  const userId = cookieStore.get('userId')?.value
-
-  if (!userId) return
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } })
+  if (!meeting) throw new Error('Schůzka nenalezena')
+  if (!MANAGEMENT_ROLES.has(user.role) && meeting.patrolId !== user.patrolId) {
+    throw new Error('Nemáte oprávnění')
+  }
 
   const existing = await prisma.meetingAttendance.findFirst({
-    where: { userId, meetingId }
+    where: { userId: user.id, meetingId }
   })
 
   if (existing) {
@@ -99,7 +120,7 @@ export async function saveMeetingAttendance(formData: FormData) {
     })
   } else {
     await prisma.meetingAttendance.create({
-      data: { userId, meetingId, status, note }
+      data: { userId: user.id, meetingId, status, note }
     })
   }
   revalidatePath('/meetings')
@@ -107,15 +128,18 @@ export async function saveMeetingAttendance(formData: FormData) {
 
 // 3. Odeslání zprávy do chatu
 export async function sendMeetingMessage(formData: FormData) {
+  const user = await requireUser()
   const meetingId = formData.get('meetingId') as string
   const text = formData.get('text') as string
-  const cookieStore = await cookies()
-  const userId = cookieStore.get('userId')?.value
-
-  if (!userId || !text.trim()) return
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } })
+  if (!meeting) throw new Error('Schůzka nenalezena')
+  if (!MANAGEMENT_ROLES.has(user.role) && meeting.patrolId !== user.patrolId) {
+    throw new Error('Nemáte oprávnění')
+  }
+  if (!text.trim()) return
 
   await prisma.meetingMessage.create({
-    data: { text, userId, meetingId }
+    data: { text, userId: user.id, meetingId }
   })
   revalidatePath('/meetings')
 }

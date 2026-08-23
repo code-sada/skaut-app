@@ -11,14 +11,37 @@ export default async function HomePage() {
 
   let currentUser = null;
   if (userId) {
-    currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { patrol: true }, // Přidáno načtení družiny pro filtraci!
+    });
   }
 
   const role = currentUser?.role;
-  // Změněno na malé admin
   const canManage = role === "admin" || role === "user" || role === "leader";
+  const userPatrolName = currentUser?.patrol?.name;
+
+  // FILTROVACÍ LOGIKA:
+  const eventWhereClause: any = {};
+
+  // Pokud uživatel NENÍ vedoucí ani admin, aplikujeme filtr
+  if (!canManage) {
+    if (userPatrolName) {
+      // Uživatel má družinu: ukážeme celooddílové akce + akce jeho družiny
+      eventWhereClause.OR = [
+        { targetPatrol: "" },
+        { targetPatrol: "Všichni" },
+        { targetPatrol: userPatrolName },
+      ];
+    } else {
+      // Uživatel nemá družinu (např. nepřiřazené dítě): ukážeme jen celooddílové
+      eventWhereClause.OR = [{ targetPatrol: "" }, { targetPatrol: "Všichni" }];
+    }
+  }
+  // (Pokud je canManage true, eventWhereClause zůstane prázdný a načtou se všechny akce)
 
   const events = await prisma.event.findMany({
+    where: eventWhereClause,
     orderBy: { date: "asc" },
     include: {
       attendance: {

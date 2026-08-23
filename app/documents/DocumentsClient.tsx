@@ -82,6 +82,7 @@ export default function DocumentsClient({
                 {categoriesMap[categoryName].map((doc: any) => (
                   <div
                     key={doc.id}
+                    data-testid="document-card"
                     className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-[#00c853] hover:shadow-sm transition-all group relative"
                   >
                     <a
@@ -105,6 +106,7 @@ export default function DocumentsClient({
 
                     {canManage && (
                       <button
+                        aria-label={`Smazat dokument ${doc.name}`}
                         onClick={() => handleDelete(doc.id)}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       >

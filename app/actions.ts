@@ -8,6 +8,32 @@ import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
+const MANAGEMENT_ROLES = new Set(["admin", "user", "leader", "LEADER"]);
+
+async function getCurrentUser() {
+  const userId = (await cookies()).get("userId")?.value;
+  if (!userId) return null;
+  return prisma.user.findUnique({ where: { id: userId } });
+}
+
+async function requireAuthenticatedUser() {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Nepřihlášen");
+  return user;
+}
+
+async function requireManagementRole() {
+  const user = await requireAuthenticatedUser();
+  if (!MANAGEMENT_ROLES.has(user.role)) throw new Error("Nemáte oprávnění");
+  return user;
+}
+
+async function requireAdminRole() {
+  const user = await requireAuthenticatedUser();
+  if (user.role !== "admin") throw new Error("Nemáte oprávnění");
+  return user;
+}
+
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
@@ -42,13 +68,11 @@ export async function logoutUser() {
 }
 
 export async function forceChangePassword(formData: FormData) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-  if (!userId) redirect("/login");
+  const user = await requireAuthenticatedUser();
 
   const newPassword = formData.get("newPassword") as string;
   await prisma.user.update({
-    where: { id: userId },
+    where: { id: user.id },
     data: { password: hashPassword(newPassword), mustChangePassword: false },
   });
   redirect("/");
@@ -57,9 +81,7 @@ export async function forceChangePassword(formData: FormData) {
 // --- VLASTNÍ PROFIL ---
 
 export async function updateProfile(formData: FormData) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-  if (!userId) redirect("/login");
+  const user = await requireAuthenticatedUser();
 
   const name = formData.get("name") as string;
   const newPassword = formData.get("newPassword") as string;
@@ -70,16 +92,17 @@ export async function updateProfile(formData: FormData) {
   }
 
   await prisma.user.update({
-    where: { id: userId },
+    where: { id: user.id },
     data: dataToUpdate,
   });
-  revalidatePath("/");
-  redirect("/");
+  revalidatePath("/expedition");
+  redirect("/expedition");
 }
 
 // --- SPRÁVA AKCÍ ---
 
 export async function updateEvent(formData: FormData) {
+  await requireManagementRole();
   const id = formData.get("id") as string;
 
   // Základní info
@@ -156,6 +179,7 @@ export async function updateEvent(formData: FormData) {
 }
 
 export async function deleteEvent(formData: FormData) {
+  await requireManagementRole();
   const id = formData.get("id") as string;
   await prisma.event.delete({ where: { id } });
   revalidatePath("/");
@@ -164,6 +188,7 @@ export async function deleteEvent(formData: FormData) {
 // --- SPRÁVA UŽIVATELŮ (ADMIN) ---
 
 export async function createUser(formData: FormData) {
+  await requireAdminRole();
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const role = formData.get("role") as string;
@@ -184,6 +209,7 @@ export async function createUser(formData: FormData) {
 }
 
 export async function editUser(formData: FormData) {
+  await requireAdminRole();
   const id = formData.get("id") as string;
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
@@ -203,6 +229,7 @@ export async function editUser(formData: FormData) {
 }
 
 export async function forcePasswordReset(id: string) {
+  await requireAdminRole();
   await prisma.user.update({
     where: { id },
     data: { mustChangePassword: true },
@@ -211,6 +238,7 @@ export async function forcePasswordReset(id: string) {
 }
 
 export async function deleteUser(formData: FormData) {
+  await requireAdminRole();
   const id = formData.get("id") as string;
   if (!id) return;
 
@@ -221,21 +249,19 @@ export async function deleteUser(formData: FormData) {
 }
 
 export async function saveAttendance(formData: FormData) {
+  const user = await requireAuthenticatedUser();
   const eventId = formData.get("eventId") as string;
   const status = formData.get("status") as string;
   const note = (formData.get("note") as string) || "";
 
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-
-  if (!userId || !eventId || !status) {
+  if (!eventId || !status) {
     throw new Error("Chybí data pro uložení účasti.");
   }
 
   // Nejdřív se podíváme, jestli už se uživatel k této akci nevyjádřil dřív
   const existingAttendance = await prisma.attendance.findFirst({
     where: {
-      userId: userId,
+      userId: user.id,
       eventId: eventId,
     },
   });
@@ -250,7 +276,7 @@ export async function saveAttendance(formData: FormData) {
     // Pokud se vyjadřuje poprvé, vytvoříme nový záznam
     await prisma.attendance.create({
       data: {
-        userId,
+        userId: user.id,
         eventId,
         status,
         note,
@@ -263,8 +289,9 @@ export async function saveAttendance(formData: FormData) {
 }
 
 export async function markNotificationAsRead(id: string) {
-  await prisma.notification.update({
-    where: { id },
+  const user = await requireAuthenticatedUser();
+  await prisma.notification.updateMany({
+    where: { id, userId: user.id },
     data: { isRead: true },
   });
   revalidatePath("/");
@@ -272,10 +299,7 @@ export async function markNotificationAsRead(id: string) {
 
 // --- NOVÝ CREATE EVENT (NOTIFIKACE PRO ÚPLNĚ VŠECHNY) ---
 export async function createEvent(formData: FormData) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-
-  if (!userId) return { success: false, error: "Nepřihlášen" };
+  const user = await requireManagementRole();
 
   const title = formData.get("title") as string;
 
@@ -308,7 +332,7 @@ export async function createEvent(formData: FormData) {
         : null,
       leaderInCharge: (formData.get("leaderInCharge") as string) || null,
       leaderContact: (formData.get("leaderContact") as string) || null,
-      createdById: userId,
+      createdById: user.id,
     },
   });
 
@@ -332,18 +356,20 @@ export async function createEvent(formData: FormData) {
 
 // --- ŽÁDOSTI O ÚPRAVU ČLENA (S NOTIFIKACÍ ADMINŮM) ---
 export async function createPendingMemberUpdate(formData: FormData) {
-  const cookieStore = await cookies();
-  const requesterId = cookieStore.get("userId")?.value;
-  if (!requesterId) return { success: false, error: "Nepřihlášen" };
+  const requester = await requireAuthenticatedUser();
 
   const targetUserId = formData.get("targetUserId") as string;
   const updateData = formData.get("data") as string;
+
+  if (!targetUserId || (!MANAGEMENT_ROLES.has(requester.role) && targetUserId !== requester.id)) {
+    throw new Error("Nemáte oprávnění");
+  }
 
   // Vytvoří se žádost o úpravu (PendingUpdate)
   await prisma.pendingUpdate.create({
     data: {
       userId: targetUserId,
-      requestedBy: requesterId,
+      requestedBy: requester.id,
       data: updateData,
     },
   });
@@ -370,6 +396,7 @@ export async function createPendingMemberUpdate(formData: FormData) {
 
 // --- DOKUMENTY ---
 export async function createDocument(formData: FormData) {
+  await requireManagementRole();
   const name = formData.get("name") as string;
   const url = formData.get("url") as string;
   const category = formData.get("category") as string;
@@ -385,11 +412,13 @@ export async function createDocument(formData: FormData) {
 }
 
 export async function deleteDocument(id: string) {
+  await requireManagementRole();
   await prisma.document.delete({ where: { id } });
 }
 
 // --- DRUŽINY (Úprava časů schůzek) ---
 export async function updatePatrolInfo(formData: FormData) {
+  await requireManagementRole();
   const id = formData.get("id") as string;
   const schedule = formData.get("schedule") as string;
   const location = formData.get("location") as string;

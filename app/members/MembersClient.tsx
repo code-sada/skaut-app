@@ -80,6 +80,7 @@ export default function MembersClient({
         </div>
 
         <select
+          aria-label="Filtro podle družiny"
           value={patrolFilter}
           onChange={(e) => setPatrolFilter(e.target.value)}
           className="w-full md:w-auto p-3 bg-gray-50 border-2 border-gray-200 rounded-xl outline-none focus:border-[#1a237e] text-gray-700 font-medium"
@@ -93,6 +94,7 @@ export default function MembersClient({
         </select>
 
         <select
+          aria-label="Filtro podle věku"
           value={ageFilter}
           onChange={(e) => setAgeFilter(e.target.value)}
           className="w-full md:w-auto p-3 bg-gray-50 border-2 border-gray-200 rounded-xl outline-none focus:border-[#1a237e] text-gray-700 font-medium"

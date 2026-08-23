@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Plus, Tent, X } from "lucide-react";
 import EventCard from "@/components/EventCard";
 import { createEvent } from "@/app/actions";
+import EditEventModal from "./EditEventModal";
 
 export default function EventsClient({
   events,
@@ -12,6 +13,7 @@ export default function EventsClient({
   saveAttendanceAction,
 }: any) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [eventBeingEdited, setEventBeingEdited] = useState<any>(null);
 
   const handleCreate = async (formData: FormData) => {
     await createEvent(formData);
@@ -49,6 +51,7 @@ export default function EventsClient({
             canManage={canManage}
             currentUser={currentUser}
             saveAttendanceAction={saveAttendanceAction}
+            onEdit={() => setEventBeingEdited(event)}
           />
         ))}
 
@@ -344,6 +347,13 @@ export default function EventsClient({
             </form>
           </div>
         </div>
+      )}
+
+      {eventBeingEdited && (
+        <EditEventModal
+          event={eventBeingEdited}
+          onClose={() => setEventBeingEdited(null)}
+        />
       )}
     </>
   );

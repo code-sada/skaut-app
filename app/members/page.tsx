@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import MembersClient from "./MembersClient";
 import { approveUpdate, rejectUpdate } from "./actions";
@@ -15,7 +16,8 @@ export default async function MembersPage() {
     : null;
 
   const userRole = currentUser?.role || "MEMBER";
-  const isLeader = userRole === "admin" || userRole === "LEADER";
+  const isLeader = ["admin", "user", "leader", "LEADER"].includes(userRole);
+  if (!isLeader) redirect("/");
 
   const allUsers = await prisma.user.findMany({
     include: {
@@ -133,7 +135,9 @@ export default async function MembersPage() {
                   </div>
                   <div className="flex gap-2 w-full md:w-auto">
                     <form
-                      action={approveUpdate.bind(null, update.id)}
+                      action={async () => {
+                        await approveUpdate(update.id);
+                      }}
                       className="flex-1 md:flex-none"
                     >
                       <button
@@ -144,7 +148,9 @@ export default async function MembersPage() {
                       </button>
                     </form>
                     <form
-                      action={rejectUpdate.bind(null, update.id)}
+                      action={async () => {
+                        await rejectUpdate(update.id);
+                      }}
                       className="flex-1 md:flex-none"
                     >
                       <button
