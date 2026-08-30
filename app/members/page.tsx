@@ -135,9 +135,7 @@ export default async function MembersPage() {
                   </div>
                   <div className="flex gap-2 w-full md:w-auto">
                     <form
-                      action={async () => {
-                        await approveUpdate(update.id);
-                      }}
+                      action={approveUpdate.bind(null, update.id)}
                       className="flex-1 md:flex-none"
                     >
                       <button
@@ -148,9 +146,7 @@ export default async function MembersPage() {
                       </button>
                     </form>
                     <form
-                      action={async () => {
-                        await rejectUpdate(update.id);
-                      }}
+                      action={rejectUpdate.bind(null, update.id)}
                       className="flex-1 md:flex-none"
                     >
                       <button

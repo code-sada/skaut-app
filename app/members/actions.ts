@@ -1,4 +1,5 @@
 "use server";
+
 import { PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -20,7 +21,10 @@ export async function requestProfileUpdate(formData: FormData) {
   const userId = formData.get("userId") as string;
   const birthDateStr = formData.get("birthDate") as string;
 
-  if (!userId || (!MANAGEMENT_ROLES.has(requester.role) && userId !== requester.id)) {
+  if (
+    !userId ||
+    (!MANAGEMENT_ROLES.has(requester.role) && userId !== requester.id)
+  ) {
     throw new Error("Nemáte oprávnění");
   }
 
@@ -67,13 +71,27 @@ export async function approveUpdate(updateId: string) {
 
   const submittedData = JSON.parse(pending.data);
   const allowedFields = [
-    "name", "patrolId", "healthNote", "dietaryRestrictions", "address", "city",
-    "postalCode", "parentPhone", "motherName", "motherPhone", "fatherName",
-    "fatherPhone", "otherGuardianName", "otherGuardianPhone", "birthDate",
+    "name",
+    "patrolId",
+    "healthNote",
+    "dietaryRestrictions",
+    "address",
+    "city",
+    "postalCode",
+    "parentPhone",
+    "motherName",
+    "motherPhone",
+    "fatherName",
+    "fatherPhone",
+    "otherGuardianName",
+    "otherGuardianPhone",
+    "birthDate",
   ] as const;
   const newData = Object.fromEntries(
     allowedFields
-      .filter((field) => Object.prototype.hasOwnProperty.call(submittedData, field))
+      .filter((field) =>
+        Object.prototype.hasOwnProperty.call(submittedData, field),
+      )
       .map((field) => [field, submittedData[field]]),
   );
 
