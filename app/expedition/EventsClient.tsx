@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import React from "react";
 import { Plus, Tent, X } from "lucide-react";
 import EventCard from "@/components/EventCard";
 import { createEvent } from "@/app/actions";
@@ -19,6 +20,17 @@ export default function EventsClient({
     await createEvent(formData);
     setIsAddModalOpen(false);
   };
+
+  React.useEffect(() => {
+    if (isAddModalOpen || eventBeingEdited) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isAddModalOpen, eventBeingEdited]);
 
   return (
     <>
@@ -87,7 +99,7 @@ export default function EventsClient({
               </button>
             </div>
 
-            <form action={handleCreate} className="p-8 space-y-8">
+            <form action={handleCreate} className="p-8 space-y-8 pb-16">
               <div className="space-y-4">
                 <h2 className="text-lg font-bold text-[#1a237e] border-b pb-2">
                   Základní info

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import React from "react";
 import {
   Folder,
   FileText,
@@ -30,6 +31,17 @@ export default function DocumentsClient({
       window.location.reload();
     }
   };
+
+  React.useEffect(() => {
+    if (isAddModalOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isAddModalOpen]);
 
   // Seskupení dokumentů podle kategorie
   const categoriesMap: { [key: string]: any[] } = {};
@@ -142,7 +154,7 @@ export default function DocumentsClient({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form action={handleCreate} className="p-6 space-y-4">
+            <form action={handleCreate} className="p-6 space-y-4 pb-12">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-bold text-gray-700">
                   Název souboru/odkazu

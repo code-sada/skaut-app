@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import React from "react";
 import {
   Pencil,
   Trash2,
@@ -42,6 +43,17 @@ export default function EventCard({
     myAttendance?.status || null,
   );
   const [note, setNote] = useState<string>(myAttendance?.note || "");
+
+  React.useEffect(() => {
+    if (isModalOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isModalOpen]);
 
   // Filtrace účastníků pro záložku "Účastníci"
   const going =
@@ -177,7 +189,7 @@ export default function EventCard({
             )}
 
             {/* Obsah - Skrolovatelný */}
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-6 overflow-y-auto flex-1 pb-8">
               {/* TAB 1: INFO A PŘIHLÁŠENÍ */}
               {activeTab === "info" && (
                 <div className="space-y-8">

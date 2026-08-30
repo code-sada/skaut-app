@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
-import MeetingCard from '@/components/MeetingCard'
-import AddMeetingForm from '@/components/AddMeetingForm' // Vytvoříme níže
+import MeetingsClient from './MeetingsClient'
 import { deleteMeeting, generateMeetings, saveMeetingAttendance, sendMeetingMessage, updateMeeting } from './actions'
 
 const prisma = new PrismaClient()
@@ -41,38 +40,18 @@ export default async function SchuzkyPage() {
   const patrols = await prisma.patrol.findMany() // Pro výběr v modalu přidávání
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6 pb-20">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-extrabold text-[#1a237e]">Schůzky</h1>
-          <p className="text-gray-500 mt-1">
-            {canManage ? 'Přehled všech družinovek' : `Schůzky družiny ${currentUser?.patrol?.name || ''}`}
-          </p>
-        </div>
-        
-        {/* Formulář pro adminy na přidávání (vyčleníme do komponenty pro přehlednost) */}
-        {canManage && <AddMeetingForm patrols={patrols} generateAction={generateMeetings} />}
-      </div>
-
-      <div className="space-y-4">
-        {meetings.length === 0 ? (
-          <p className="text-center text-gray-500 py-10 bg-white rounded-2xl border-dashed border border-gray-200">Zatím nejsou v plánu žádné schůzky.</p>
-        ) : (
-          meetings.map((meeting) => (
-            <MeetingCard 
-              key={meeting.id} 
-              meeting={meeting} 
-              currentUser={currentUser}
-              canManage={canManage}
-              patrols={patrols}
-              saveAttendance={saveMeetingAttendance}
-              sendMessage={sendMeetingMessage}
-              deleteMeetingAction={deleteMeeting}
-              updateMeetingAction={updateMeeting}
-            />
-          ))
-        )}
-      </div>
+    <div className="p-6 md:p-8 max-w-5xl mx-auto pb-20">
+      <MeetingsClient 
+        meetings={meetings}
+        currentUser={currentUser}
+        canManage={canManage}
+        patrols={patrols}
+        saveMeetingAttendance={saveMeetingAttendance}
+        sendMeetingMessage={sendMeetingMessage}
+        deleteMeetingAction={deleteMeeting}
+        updateMeetingAction={updateMeeting}
+        generateMeetingsAction={generateMeetings}
+      />
     </div>
   )
 }

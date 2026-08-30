@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import React from "react";
 import {
   Trash2,
   ShieldAlert,
@@ -38,6 +39,17 @@ export default function AdminContent({
 }: any) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+
+  React.useEffect(() => {
+    if (isModalOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isModalOpen]);
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -137,8 +149,8 @@ export default function AdminContent({
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white text-gray-900 p-8 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white text-gray-900 p-8 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <div className="flex justify-between items-center mb-6 shrink-0">
               <h2 className="text-xl font-bold">
                 {editingUser ? "Upravit účet" : "Vytvořit účet"}
               </h2>
@@ -150,7 +162,7 @@ export default function AdminContent({
             <form
               action={editingUser ? editUser : createUser}
               onSubmit={() => setIsModalOpen(false)}
-              className="space-y-4"
+              className="space-y-4 pb-8"
             >
               {editingUser && (
                 <input type="hidden" name="id" value={editingUser.id} />

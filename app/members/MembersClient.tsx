@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Edit,
@@ -31,6 +31,18 @@ export default function MembersClient({
   const [detailUser, setDetailUser] = useState<any>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // FIX: Zablokování posuvníku a schování bílého pruhu
+  useEffect(() => {
+    if (editingUser || detailUser || isAddModalOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [editingUser, detailUser, isAddModalOpen]);
 
   const inputClass =
     "w-full p-2.5 border-2 border-gray-300 rounded-xl bg-white text-gray-900 outline-none focus:border-[#1a237e]";
