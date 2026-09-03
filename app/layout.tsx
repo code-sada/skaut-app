@@ -6,6 +6,8 @@ import { PrismaClient } from "@prisma/client";
 import { logoutUser } from "./actions";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+// Importujeme náš nový interaktivní obal
+import ClientAppShell from "@/components/ClientAppShell";
 
 const inter = Inter({ subsets: ["latin"] });
 const prisma = new PrismaClient();
@@ -39,25 +41,19 @@ export default async function RootLayout({
 
   return (
     <html lang="cs">
-      <body
-        className={`${inter.className} bg-gray-50 text-gray-900 flex min-h-screen font-sans`}
-      >
+      <body className={`${inter.className} bg-gray-50 text-gray-900 font-sans`}>
         {currentUser && !currentUser.mustChangePassword ? (
-          <>
-            {/* @ts-ignore */}
-            <Sidebar currentUser={currentUser} logoutUser={logoutUser} />
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
-              {/* VLOŽENA NAŠE NOVÁ HLAVIČKA S OZNÁMENÍMI */}
-              <Header notifications={notifications} />
-
-              <main className="flex-1 overflow-y-auto bg-gray-50">
-                {children}
-              </main>
-            </div>
-          </>
+          <ClientAppShell
+            sidebar={
+              /* @ts-ignore */
+              <Sidebar currentUser={currentUser} logoutUser={logoutUser} />
+            }
+            header={<Header notifications={notifications} />}
+          >
+            {children}
+          </ClientAppShell>
         ) : (
-          <main className="flex-1 w-full h-screen overflow-y-auto">
+          <main className="flex flex-col min-h-screen w-full overflow-y-auto bg-gray-50">
             {children}
           </main>
         )}

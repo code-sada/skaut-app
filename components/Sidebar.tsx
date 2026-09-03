@@ -67,8 +67,9 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
   }
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between shrink-0 hidden md:flex">
-      <div className="flex flex-col h-full">
+    <aside className="flex flex-col w-full h-full bg-white border-r border-gray-200">
+      {/* HORNÍ ČÁST (Logo, Menu, Admin) - zabere veškeré volné místo */}
+      <div className="flex-1 flex flex-col overflow-y-auto">
         <div className="h-20 flex items-center px-6 shrink-0">
           <Tent className="text-[#00c853] w-7 h-7 mr-2" />
           <span className="font-extrabold text-[#1a237e] text-xl tracking-wide">
@@ -76,7 +77,7 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
           </span>
         </div>
 
-        <nav className="px-4 py-2 space-y-1.5 flex-1 overflow-y-auto">
+        <nav className="px-4 py-2 space-y-1.5 flex-1">
           {nav.map((item, idx) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -95,7 +96,7 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
 
         {/* ADMIN SECTION */}
         {currentUser?.role === "admin" && (
-          <div className="px-4 pb-2">
+          <div className="px-4 pb-4 shrink-0">
             <div className="pt-4 border-t border-gray-100">
               <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
                 Administrace
@@ -111,6 +112,7 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
         )}
       </div>
 
+      {/* SPODNÍ ČÁST (Profil) - je vytlačena úplně dolů */}
       <div className="p-4 border-t border-gray-100 flex items-center justify-between shrink-0">
         <Link
           href="/profile"
