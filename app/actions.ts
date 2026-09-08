@@ -10,6 +10,17 @@ const prisma = new PrismaClient();
 
 const MANAGEMENT_ROLES = new Set(["admin", "user", "leader", "LEADER"]);
 
+export type SearchResultGroup = {
+  category: string;
+  items: {
+    id: string;
+    title: string;
+    subtitle?: string;
+    href: string;
+    type: "user" | "event" | "meeting" | "document";
+  }[];
+};
+
 async function getCurrentUser() {
   const userId = (await cookies()).get("userId")?.value;
   if (!userId) return null;
@@ -36,6 +47,153 @@ async function requireAdminRole() {
 
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
+}
+
+// --- POMOCNÁ FUNKCE PRO ODSTRANĚNÍ DIAKRITIKY ---
+function removeDiacritics(text: string | null | undefined): string {
+  if (!text) return "";
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+// --- GLOBÁLNÍ VYHLEDÁVÁNÍ (BEZ DIAKRITIKY A CASE-INSENSITIVE) ---
+export async function globalSearch(
+  query: string,
+): Promise<SearchResultGroup[]> {
+  const cleanQuery = removeDiacritics(query.trim());
+
+  if (!cleanQuery || cleanQuery.length < 2) {
+    return [];
+  }
+
+  const currentUser = await getCurrentUser();
+  const userRole = currentUser?.role || "MEMBER";
+  const isManagement = MANAGEMENT_ROLES.has(userRole);
+
+  const results: SearchResultGroup[] = [];
+
+  // 1. ČLENOVÉ (Pouze pro Vedoucí a Adminy)
+  if (isManagement) {
+    const allUsers = await prisma.user.findMany({
+      select: { id: true, name: true, role: true, email: true },
+    });
+
+    const matchedUsers = allUsers
+      .filter(
+        (u) =>
+          removeDiacritics(u.name).includes(cleanQuery) ||
+          removeDiacritics(u.email).includes(cleanQuery),
+      )
+      .slice(0, 4);
+
+    if (matchedUsers.length > 0) {
+      results.push({
+        category: "Členové a uživatelé",
+        items: matchedUsers.map((u) => ({
+          id: u.id,
+          title: u.name,
+          subtitle: `Role: ${u.role}`,
+          href: `/members`,
+          type: "user",
+        })),
+      });
+    }
+  }
+
+  // 2. AKCE A VÝPRAVY (Pro všechny)
+  const allEvents = await prisma.event.findMany({
+    select: {
+      id: true,
+      title: true,
+      location: true,
+      date: true,
+      description: true,
+    },
+  });
+
+  const matchedEvents = allEvents
+    .filter(
+      (e) =>
+        removeDiacritics(e.title).includes(cleanQuery) ||
+        removeDiacritics(e.location).includes(cleanQuery) ||
+        removeDiacritics(e.description).includes(cleanQuery),
+    )
+    .slice(0, 4);
+
+  if (matchedEvents.length > 0) {
+    results.push({
+      category: "Akce a výpravy",
+      items: matchedEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        subtitle: `${new Date(e.date).toLocaleDateString("cs-CZ")} • ${e.location || "Neznámé místo"}`,
+        href: `/expedition`,
+        type: "event",
+      })),
+    });
+  }
+
+  // 3. SCHŮZKY (Pro všechny)
+  const allMeetings = await prisma.meeting.findMany({
+    select: {
+      id: true,
+      title: true,
+      location: true,
+      date: true,
+      comment: true,
+    },
+  });
+
+  const matchedMeetings = allMeetings
+    .filter(
+      (m) =>
+        removeDiacritics(m.title).includes(cleanQuery) ||
+        removeDiacritics(m.location).includes(cleanQuery) ||
+        removeDiacritics(m.comment).includes(cleanQuery),
+    )
+    .slice(0, 4);
+
+  if (matchedMeetings.length > 0) {
+    results.push({
+      category: "Schůzky",
+      items: matchedMeetings.map((m) => ({
+        id: m.id,
+        title: m.title,
+        subtitle: `${new Date(m.date).toLocaleDateString("cs-CZ")} • ${m.location || "Klubovna"}`,
+        href: `/meetings`,
+        type: "meeting",
+      })),
+    });
+  }
+
+  // 4. DOKUMENTY (Omezení kategorie)
+  const allDocuments = await prisma.document.findMany({
+    select: { id: true, name: true, category: true, url: true },
+  });
+
+  const matchedDocuments = allDocuments
+    .filter((d) => {
+      if (!isManagement && d.category === "Pro vedoucí") return false;
+      return removeDiacritics(d.name).includes(cleanQuery);
+    })
+    .slice(0, 4);
+
+  if (matchedDocuments.length > 0) {
+    results.push({
+      category: "Dokumenty",
+      items: matchedDocuments.map((d) => ({
+        id: d.id,
+        title: d.name,
+        subtitle: `Kategorie: ${d.category}`,
+        href: d.url || `/documents`,
+        type: "document",
+      })),
+    });
+  }
+
+  return results;
 }
 
 // --- PŘIHLÁŠENÍ / ODHLÁŠENÍ ---
@@ -105,12 +263,10 @@ export async function updateEvent(formData: FormData) {
   await requireManagementRole();
   const id = formData.get("id") as string;
 
-  // Základní info
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const location = formData.get("location") as string;
 
-  // Časový harmonogram
   const dateStr = formData.get("date") as string;
   const date = dateStr ? new Date(dateStr) : new Date();
 
@@ -120,7 +276,6 @@ export async function updateEvent(formData: FormData) {
   const meetingPoint = (formData.get("meetingPoint") as string) || null;
   const returnPoint = (formData.get("returnPoint") as string) || null;
 
-  // Účast a termíny
   const targetPatrol = (formData.get("targetPatrol") as string) || "Všichni";
 
   const rsvpDeadlineStr = formData.get("rsvpDeadline") as string;
@@ -129,7 +284,6 @@ export async function updateEvent(formData: FormData) {
   const capacityStr = formData.get("capacity") as string;
   const capacity = capacityStr ? Number(capacityStr) : null;
 
-  // Finance
   const priceChildren = Number(formData.get("priceChildren")) || 0;
   const priceOlder = Number(formData.get("priceOlder")) || 0;
 
@@ -140,12 +294,10 @@ export async function updateEvent(formData: FormData) {
 
   const paymentMethod = (formData.get("paymentMethod") as string) || null;
 
-  // Logistika a vybavení
   const equipment = (formData.get("equipment") as string) || null;
   const food = (formData.get("food") as string) || null;
   const accommodation = (formData.get("accommodation") as string) || null;
 
-  // Kontakty
   const leaderInCharge = (formData.get("leaderInCharge") as string) || null;
   const leaderContact = (formData.get("leaderContact") as string) || null;
 
@@ -258,7 +410,6 @@ export async function saveAttendance(formData: FormData) {
     throw new Error("Chybí data pro uložení účasti.");
   }
 
-  // Nejdřív se podíváme, jestli už se uživatel k této akci nevyjádřil dřív
   const existingAttendance = await prisma.attendance.findFirst({
     where: {
       userId: user.id,
@@ -267,13 +418,11 @@ export async function saveAttendance(formData: FormData) {
   });
 
   if (existingAttendance) {
-    // Pokud už existuje, jen ho updatneme (např. změnil názor nebo přidal poznámku)
     await prisma.attendance.update({
       where: { id: existingAttendance.id },
       data: { status, note },
     });
   } else {
-    // Pokud se vyjadřuje poprvé, vytvoříme nový záznam
     await prisma.attendance.create({
       data: {
         userId: user.id,
@@ -284,7 +433,6 @@ export async function saveAttendance(formData: FormData) {
     });
   }
 
-  // Po uložení ihned obnovíme stránku, ať se změna projeví
   revalidatePath("/");
 }
 
@@ -297,13 +445,12 @@ export async function markNotificationAsRead(id: string) {
   revalidatePath("/");
 }
 
-// --- NOVÝ CREATE EVENT (NOTIFIKACE PRO ÚPLNĚ VŠECHNY) ---
 export async function createEvent(formData: FormData) {
   const user = await requireManagementRole();
 
   const title = formData.get("title") as string;
 
-  const event = await prisma.event.create({
+  await prisma.event.create({
     data: {
       title,
       description: formData.get("description") as string,
@@ -336,7 +483,6 @@ export async function createEvent(formData: FormData) {
     },
   });
 
-  // TADY JE ZMĚNA: Pošleme notifikaci do zvonečku ÚPLNĚ VŠEM uživatelům
   const allUsers = await prisma.user.findMany();
 
   if (allUsers.length > 0) {
@@ -354,18 +500,19 @@ export async function createEvent(formData: FormData) {
   return { success: true };
 }
 
-// --- ŽÁDOSTI O ÚPRAVU ČLENA (S NOTIFIKACÍ ADMINŮM) ---
 export async function createPendingMemberUpdate(formData: FormData) {
   const requester = await requireAuthenticatedUser();
 
   const targetUserId = formData.get("targetUserId") as string;
   const updateData = formData.get("data") as string;
 
-  if (!targetUserId || (!MANAGEMENT_ROLES.has(requester.role) && targetUserId !== requester.id)) {
+  if (
+    !targetUserId ||
+    (!MANAGEMENT_ROLES.has(requester.role) && targetUserId !== requester.id)
+  ) {
     throw new Error("Nemáte oprávnění");
   }
 
-  // Vytvoří se žádost o úpravu (PendingUpdate)
   await prisma.pendingUpdate.create({
     data: {
       userId: targetUserId,
@@ -374,7 +521,6 @@ export async function createPendingMemberUpdate(formData: FormData) {
     },
   });
 
-  // TADY JE ZMĚNA: Zvoneček upozorní všechny adminy na novou žádost
   const admins = await prisma.user.findMany({
     where: { role: "admin" },
   });
@@ -407,8 +553,6 @@ export async function createDocument(formData: FormData) {
   await prisma.document.create({
     data: { name, url, category, type: type || "pdf" },
   });
-
-  // Zde bys případně mohl zavolat revalidatePath('/documents')
 }
 
 export async function deleteDocument(id: string) {
@@ -416,7 +560,7 @@ export async function deleteDocument(id: string) {
   await prisma.document.delete({ where: { id } });
 }
 
-// --- DRUŽINY (Úprava časů schůzek) ---
+// --- DRUŽINY ---
 export async function updatePatrolInfo(formData: FormData) {
   await requireManagementRole();
   const id = formData.get("id") as string;
