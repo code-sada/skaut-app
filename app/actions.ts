@@ -49,7 +49,6 @@ function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-// --- POMOCNÁ FUNKCE PRO ODSTRANĚNÍ DIAKRITIKY ---
 function removeDiacritics(text: string | null | undefined): string {
   if (!text) return "";
   return text
@@ -58,7 +57,7 @@ function removeDiacritics(text: string | null | undefined): string {
     .toLowerCase();
 }
 
-// --- GLOBÁLNÍ VYHLEDÁVÁNÍ (BEZ DIAKRITIKY A CASE-INSENSITIVE) ---
+// --- GLOBÁLNÍ VYHLEDÁVÁNÍ ---
 export async function globalSearch(
   query: string,
 ): Promise<SearchResultGroup[]> {
@@ -74,7 +73,6 @@ export async function globalSearch(
 
   const results: SearchResultGroup[] = [];
 
-  // 1. ČLENOVÉ (Pouze pro Vedoucí a Adminy)
   if (isManagement) {
     const allUsers = await prisma.user.findMany({
       select: { id: true, name: true, role: true, email: true },
@@ -102,7 +100,6 @@ export async function globalSearch(
     }
   }
 
-  // 2. AKCE A VÝPRAVY (Pro všechny)
   const allEvents = await prisma.event.findMany({
     select: {
       id: true,
@@ -135,7 +132,6 @@ export async function globalSearch(
     });
   }
 
-  // 3. SCHŮZKY (Pro všechny)
   const allMeetings = await prisma.meeting.findMany({
     select: {
       id: true,
@@ -168,7 +164,6 @@ export async function globalSearch(
     });
   }
 
-  // 4. DOKUMENTY (Omezení kategorie)
   const allDocuments = await prisma.document.findMany({
     select: { id: true, name: true, category: true, url: true },
   });
@@ -197,25 +192,38 @@ export async function globalSearch(
 }
 
 // --- PŘIHLÁŠENÍ / ODHLÁŠENÍ ---
-
-export async function loginUser(formData: FormData) {
-  const email = formData.get("email") as string;
+export async function loginUser(prevState: any, formData: FormData) {
+  // Přejmenováno z email na loginIdentifier a zbaveno zbytečných mezer na začátku/konci
+  const loginIdentifier = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  if (!loginIdentifier || !password) {
+    return { error: "Vyplňte prosím e-mail (nebo jméno) i heslo." };
+  }
+
+  // Nyní databáze hledá shodu buď v e-mailu, nebo ve jménu
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: loginIdentifier }, { name: loginIdentifier }],
+    },
+  });
+
   if (!user || user.password !== hashPassword(password)) {
-    redirect("/login");
-    return;
+    return { error: "Nesprávný e-mail, jméno nebo heslo." };
   }
 
   const cookieStore = await cookies();
   cookieStore.set("userId", user.id, {
     httpOnly: true,
     path: "/",
+    sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7,
   });
 
-  if (user.mustChangePassword) redirect("/change-password");
+  if (user.mustChangePassword) {
+    redirect("/change-password");
+  }
+
   redirect("/");
 }
 
@@ -237,7 +245,6 @@ export async function forceChangePassword(formData: FormData) {
 }
 
 // --- VLASTNÍ PROFIL ---
-
 export async function updateProfile(formData: FormData) {
   const user = await requireAuthenticatedUser();
 
@@ -258,7 +265,6 @@ export async function updateProfile(formData: FormData) {
 }
 
 // --- SPRÁVA AKCÍ ---
-
 export async function updateEvent(formData: FormData) {
   await requireManagementRole();
   const id = formData.get("id") as string;
@@ -338,7 +344,6 @@ export async function deleteEvent(formData: FormData) {
 }
 
 // --- SPRÁVA UŽIVATELŮ (ADMIN) ---
-
 export async function createUser(formData: FormData) {
   await requireAdminRole();
   const name = formData.get("name") as string;

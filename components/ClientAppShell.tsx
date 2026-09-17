@@ -17,7 +17,7 @@ export default function ClientAppShell({
   useEffect(() => {
     const observer = new MutationObserver(() => {
       const hasModal = document.querySelector(
-        '[role="dialog"], [data-headlessui-state="open"], .fixed.inset-0.bg-black, .modal-open',
+        '[role="dialog"], [data-headlessui-state="open"], .fixed.inset-0.bg-black, .modal-open, .fixed.inset-0',
       );
       if (hasModal) document.body.classList.add("overflow-hidden");
       else document.body.classList.remove("overflow-hidden");
@@ -27,25 +27,26 @@ export default function ClientAppShell({
   }, []);
 
   return (
-    <div className="flex min-h-screen w-full relative">
+    <div className="flex h-screen w-full bg-gray-50">
       {/* Tmavé pozadí na mobilu při rozbaleném menu */}
       {isMobileOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm transition-opacity"
+          className="md:hidden fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm transition-opacity"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
-      {/* Boční menu */}
+      {/* Boční menu - z-index pouze na mobilu (aby přejelo obsah), na PC je z-auto, aby nepřekáželo modálům */}
       <div
         className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform duration-300 md:relative md:translate-x-0 flex flex-col shadow-2xl md:shadow-none
+        fixed inset-y-0 left-0 w-64 bg-white transform transition-transform duration-300 flex flex-col shadow-2xl md:shadow-none shrink-0
+        z-[70] md:relative md:translate-x-0 md:z-auto
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
       `}
       >
         <div className="flex-1 overflow-y-auto w-full">{sidebar}</div>
 
-        {/* Křížek se vyrenderuje JEN tehdy, když je menu reálně otevřené */}
+        {/* Křížek na mobilu */}
         {isMobileOpen && (
           <button
             onClick={() => setIsMobileOpen(false)}
@@ -69,8 +70,8 @@ export default function ClientAppShell({
       </div>
 
       <div className="flex-1 flex flex-col h-screen min-w-0">
-        {/* MOBILNÍ HLAVIČKA */}
-        <div className="md:hidden flex items-center bg-white border-b z-30 w-full relative">
+        {/* MOBILNÍ HLAVIČKA - čistý flex bez omezujícího z-indexu */}
+        <div className="md:hidden flex items-center bg-white border-b w-full shrink-0">
           <button
             onClick={() => setIsMobileOpen(true)}
             className="p-4 text-gray-600 focus:outline-none shrink-0"
@@ -89,17 +90,15 @@ export default function ClientAppShell({
               />
             </svg>
           </button>
-
-          {/* Obal pro tvůj stávající Header (vyhledávání + zvonek) */}
-          <div className="flex-1 min-w-0 overflow-hidden">{header}</div>
+          {/* Obal pro Header */}
+          <div className="flex-1 min-w-0">{header}</div>
         </div>
 
-        {/* DESKTOP HLAVIČKA */}
+        {/* DESKTOP HLAVIČKA - čistý blok */}
         <div className="hidden md:block shrink-0">{header}</div>
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 relative">
-          {children}
-        </main>
+        {/* HLAVNÍ OBSAH - odstraněno relative a z-10, tma teď může "ven" na zbytek stránky */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>
       </div>
     </div>
   );
