@@ -1,4 +1,6 @@
 "use client";
+import FloatingField from "@/app/components/FloatingField";
+
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
@@ -51,39 +53,25 @@ export default function LoginPage() {
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="email"
-              className="text-sm font-semibold text-gray-700"
-            >
-              Přihlašovací e-mail nebo jméno
-            </label>
-            <input
-              type="text"
-              id="email"
-              name="email"
-              onKeyDown={handleKeyDown}
-              placeholder="Např. admin, nebo email..."
-              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-950 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              required
-            />
+            <FloatingField label="Přihlašovací e-mail nebo jméno" type="text"
+                id="email"
+                name="email"
+                onKeyDown={handleKeyDown}
+                
+                
+                required
+                aria-label="Přihlašovací e-mail nebo jméno" />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="password"
-              className="text-sm font-semibold text-gray-700"
-            >
-              Heslo
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              onKeyDown={handleKeyDown}
-              placeholder="••••••••"
-              className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-950 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              required
-            />
+            <FloatingField label="Heslo" type="password"
+                id="password"
+                name="password"
+                onKeyDown={handleKeyDown}
+                
+                
+                required
+                aria-label="Heslo" />
           </div>
 
           <SubmitButton />

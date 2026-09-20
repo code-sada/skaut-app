@@ -3,6 +3,7 @@ import { useState } from "react";
 import React from "react";
 import { Plus, Tent, X } from "lucide-react";
 import EventCard from "@/components/EventCard";
+import FloatingField from "@/app/components/FloatingField";
 import { createEvent } from "@/app/actions";
 import EditEventModal from "./EditEventModal";
 
@@ -104,38 +105,28 @@ export default function EventsClient({
                 <h2 className="text-lg font-bold text-[#1a237e] border-b pb-2">
                   Základní info
                 </h2>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-bold text-gray-700">
-                    Název akce
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-bold text-gray-700">
-                    Popis
-                  </label>
-                  <textarea
-                    name="description"
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg h-32 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                  ></textarea>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-bold text-gray-700">
-                    Místo
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    required
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                  />
-                </div>
+                <FloatingField
+                  id="title"
+                  name="title"
+                  label="Název akce"
+                  required
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                />
+                <FloatingField
+                  id="description"
+                  name="description"
+                  as="textarea"
+                  label="Popis"
+                  required
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg h-32 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                />
+                <FloatingField
+                  id="location"
+                  name="location"
+                  label="Místo"
+                  required
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                />
               </div>
 
               <div className="space-y-4">
@@ -143,49 +134,35 @@ export default function EventsClient({
                   Časy a srazy
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Datum (Začátek)
-                    </label>
-                    <input
-                      type="date"
-                      name="date"
-                      required
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Konec (Volitelné)
-                    </label>
-                    <input
-                      type="date"
-                      name="dateEnd"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
+                  <FloatingField
+                    id="date"
+                    label="Datum (Začátek)"
+                    type="date"
+                    name="date"
+                    required
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                  />
+                  <FloatingField
+                    id="dateEnd"
+                    label="Konec (Volitelné)"
+                    type="date"
+                    name="dateEnd"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Sraz (Kde a v kolik)
-                    </label>
-                    <input
-                      type="text"
-                      name="meetingPoint"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Návrat (Kde a v kolik)
-                    </label>
-                    <input
-                      type="text"
-                      name="returnPoint"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
+                  <FloatingField
+                    id="meetingPoint"
+                    name="meetingPoint"
+                    label="Sraz (Kde a v kolik)"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                  />
+                  <FloatingField
+                    id="returnPoint"
+                    name="returnPoint"
+                    label="Návrat (Kde a v kolik)"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                  />
                 </div>
               </div>
 
@@ -194,60 +171,32 @@ export default function EventsClient({
                   Logistika a Účast
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Pro koho
-                    </label>
-                    <input
-                      type="text"
-                      name="targetPatrol"
-                      required
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Kapacita (Počet lidí)
-                    </label>
-                    <input
-                      type="number"
-                      name="capacity"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Ubytování
-                    </label>
-                    <input
-                      type="text"
-                      name="accommodation"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Strava
-                    </label>
-                    <input
-                      type="text"
-                      name="food"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-bold text-gray-700">
-                    Co s sebou (Vybavení)
-                  </label>
-                  <input
-                    type="text"
-                    name="equipment"
+                  <FloatingField
+                    id="targetPatrol"
+                    name="targetPatrol"
+                    label="Pro koho"
+                    required
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                  />
+                  <FloatingField
+                    id="accommodation"
+                    name="accommodation"
+                    label="Ubytování"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                  />
+                  <FloatingField
+                    id="food"
+                    name="food"
+                    label="Strava"
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
                   />
                 </div>
+                <FloatingField
+                  id="equipment"
+                  name="equipment"
+                  label="Co s sebou (Vybavení)"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                />
               </div>
 
               <div className="space-y-4">
@@ -255,96 +204,18 @@ export default function EventsClient({
                   Finance a Termíny
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Cena (Děti)
-                    </label>
-                    <input
-                      type="number"
-                      name="priceChildren"
-                      required
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Cena (Starší)
-                    </label>
-                    <input
-                      type="number"
-                      name="priceOlder"
-                      required
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Způsob platby
-                    </label>
-                    <input
-                      type="text"
-                      name="paymentMethod"
-                      list="payment-options"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                      placeholder="Napiš nebo vyber..."
-                    />
-                    <datalist id="payment-options">
-                      <option value="Hotově na srazu" />
-                      <option value="Na účet střediska" />
-                      <option value="Na účet oddílu" />
-                      <option value="Přes QR kód" />
-                    </datalist>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Zaplatit do
-                    </label>
-                    <input
-                      type="date"
-                      name="paymentDeadline"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-bold text-gray-700">
-                    Přihlášky do (RSVP)
-                  </label>
-                  <input
-                    type="date"
-                    name="rsvpDeadline"
+                  <FloatingField
+                    id="leaderInCharge"
+                    name="leaderInCharge"
+                    label="Zodpovědný vedoucí"
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
                   />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-lg font-bold text-[#1a237e] border-b pb-2">
-                  Kontakty
-                </h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Zodpovědný vedoucí
-                    </label>
-                    <input
-                      type="text"
-                      name="leaderInCharge"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-bold text-gray-700">
-                      Kontakt na vedoucího
-                    </label>
-                    <input
-                      type="text"
-                      name="leaderContact"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                    />
-                  </div>
+                  <FloatingField
+                    id="leaderContact"
+                    name="leaderContact"
+                    label="Kontakt na vedoucího"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
+                  />
                 </div>
               </div>
 

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { X } from "lucide-react";
+import FloatingField from '@/app/components/FloatingField'
 import { updateEvent } from "@/app/actions";
 
 type EditableEvent = {
@@ -72,37 +73,9 @@ export default function EditEventModal({
             <h2 className="text-lg font-bold text-[#1a237e] border-b pb-2">
               Základní info
             </h2>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-gray-700">
-                Název akce
-              </label>
-              <input
-                type="text"
-                name="title"
-                defaultValue={event.title}
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-gray-700">Popis</label>
-              <textarea
-                name="description"
-                defaultValue={event.description}
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg h-32 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-gray-700">Místo</label>
-              <input
-                type="text"
-                name="location"
-                defaultValue={event.location}
-                required
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-              />
-            </div>
+            <FloatingField id="title" name="title" label="Název akce" defaultValue={event.title} required className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+            <FloatingField id="description" name="description" as="textarea" label="Popis" defaultValue={event.description} required className="w-full px-4 py-2 border border-gray-200 rounded-lg h-32 text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+            <FloatingField id="location" name="location" label="Místo" defaultValue={event.location} required className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
           </div>
 
           <div className="space-y-4">
@@ -110,53 +83,19 @@ export default function EditEventModal({
               Časy a srazy
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Datum (Začátek)
-                </label>
-                <input
-                  type="date"
+              <FloatingField id="date" label="Datum (Začátek)" type="date"
                   name="date"
                   defaultValue={formatDate(event.date)}
                   required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Konec (Volitelné)
-                </label>
-                <input
-                  type="date"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+              <FloatingField id="dateEnd" label="Konec (Volitelné)" type="date"
                   name="dateEnd"
                   defaultValue={formatDate(event.dateEnd)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Sraz (Kde a v kolik)
-                </label>
-                <input
-                  type="text"
-                  name="meetingPoint"
-                  defaultValue={event.meetingPoint || ""}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Návrat (Kde a v kolik)
-                </label>
-                <input
-                  type="text"
-                  name="returnPoint"
-                  defaultValue={event.returnPoint || ""}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
+              <FloatingField id="meetingPoint" name="meetingPoint" label="Sraz (Kde a v kolik)" defaultValue={event.meetingPoint || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+              <FloatingField id="returnPoint" name="returnPoint" label="Návrat (Kde a v kolik)" defaultValue={event.returnPoint || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
             </div>
           </div>
 
@@ -165,65 +104,17 @@ export default function EditEventModal({
               Logistika a Účast
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Pro koho
-                </label>
-                <input
-                  type="text"
-                  name="targetPatrol"
-                  defaultValue={event.targetPatrol}
-                  required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Kapacita (Počet lidí)
-                </label>
-                <input
-                  type="number"
+              <FloatingField id="targetPatrol" name="targetPatrol" label="Pro koho" defaultValue={event.targetPatrol} required className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+              <FloatingField id="capacity" label="Kapacita (Počet lidí)" type="number"
                   name="capacity"
                   defaultValue={event.capacity || ""}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Ubytování
-                </label>
-                <input
-                  type="text"
-                  name="accommodation"
-                  defaultValue={event.accommodation || ""}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Strava
-                </label>
-                <input
-                  type="text"
-                  name="food"
-                  defaultValue={event.food || ""}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
+              <FloatingField id="accommodation" name="accommodation" label="Ubytování" defaultValue={event.accommodation || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+              <FloatingField id="food" name="food" label="Strava" defaultValue={event.food || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-gray-700">
-                Co s sebou (Vybavení)
-              </label>
-              <input
-                type="text"
-                name="equipment"
-                defaultValue={event.equipment || ""}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-              />
-            </div>
+            <FloatingField id="equipment" name="equipment" label="Co s sebou (Vybavení)" defaultValue={event.equipment || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
           </div>
 
           <div className="space-y-4">
@@ -231,44 +122,20 @@ export default function EditEventModal({
               Finance a Termíny
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Cena (Děti)
-                </label>
-                <input
-                  type="number"
+              <FloatingField id="priceChildren" label="Cena (Děti)" type="number"
                   name="priceChildren"
                   defaultValue={event.priceChildren}
                   required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Cena (Starší)
-                </label>
-                <input
-                  type="number"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+              <FloatingField id="priceOlder" label="Cena (Starší)" type="number"
                   name="priceOlder"
                   defaultValue={event.priceOlder}
                   required
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Způsob platby
-                </label>
-                <input
-                  type="text"
-                  name="paymentMethod"
-                  defaultValue={event.paymentMethod || ""}
-                  list="payment-options-edit"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                  placeholder="Napiš nebo vyber..."
-                />
+                <FloatingField id="paymentMethod" name="paymentMethod" label="Způsob platby" defaultValue={event.paymentMethod || ""} list="payment-options-edit" placeholder="Napiš nebo vyber..." className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
                 <datalist id="payment-options-edit">
                   <option value="Hotově na srazu" />
                   <option value="Na účet střediska" />
@@ -276,29 +143,15 @@ export default function EditEventModal({
                   <option value="Přes QR kód" />
                 </datalist>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Zaplatit do
-                </label>
-                <input
-                  type="date"
+              <FloatingField id="paymentDeadline" label="Zaplatit do" type="date"
                   name="paymentDeadline"
                   defaultValue={formatDate(event.paymentDeadline)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-gray-700">
-                Přihlášky do (RSVP)
-              </label>
-              <input
-                type="date"
+            <FloatingField id="rsvpDeadline" label="Přihlášky do (RSVP)" type="date"
                 name="rsvpDeadline"
                 defaultValue={formatDate(event.rsvpDeadline)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-              />
-            </div>
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
           </div>
 
           <div className="space-y-4">
@@ -306,28 +159,8 @@ export default function EditEventModal({
               Kontakty
             </h2>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Zodpovědný vedoucí
-                </label>
-                <input
-                  type="text"
-                  name="leaderInCharge"
-                  defaultValue={event.leaderInCharge || ""}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Kontakt na vedoucího
-                </label>
-                <input
-                  type="text"
-                  name="leaderContact"
-                  defaultValue={event.leaderContact || ""}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none"
-                />
-              </div>
+              <FloatingField id="leaderInCharge" name="leaderInCharge" label="Zodpovědný vedoucí" defaultValue={event.leaderInCharge || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
+              <FloatingField id="leaderContact" name="leaderContact" label="Kontakt na vedoucího" defaultValue={event.leaderContact || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-gray-900 font-medium bg-white focus:ring-2 focus:ring-[#00c853] outline-none" />
             </div>
           </div>
 

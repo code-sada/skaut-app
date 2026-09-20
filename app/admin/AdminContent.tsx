@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import FloatingField from "@/app/components/FloatingField";
 import React from "react";
 import {
   Trash2,
@@ -208,81 +209,68 @@ export default function AdminContent({
                 <input type="hidden" name="id" value={editingUser.id} />
               )}
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">
-                  Jméno a příjmení
-                </label>
-                <input
-                  name="name"
-                  defaultValue={editingUser?.name}
-                  placeholder="Jan Novák"
-                  className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
+              <FloatingField
+                id="admin-name"
+                name="name"
+                label="Jméno a příjmení"
+                defaultValue={editingUser?.name}
+                placeholder="Jan Novák"
+                className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">
-                  E-mail
-                </label>
-                <input
-                  name="email"
-                  type="text"
-                  defaultValue={editingUser?.email}
-                  placeholder="email@skaut.cz"
-                  className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
+              <FloatingField
+                id="admin-email"
+                name="email"
+                type="text"
+                label="E-mail"
+                defaultValue={editingUser?.email}
+                placeholder="email@skaut.cz"
+                className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">
-                  Role
-                </label>
-                <select
-                  name="role"
-                  defaultValue={editingUser?.role || "child"}
-                  className="w-full p-2.5 border rounded-xl bg-white text-gray-900 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="child">Dítě</option>
-                  <option value="parent">Rodič</option>
-                  <option value="user">Vedoucí</option>
-                  <option value="admin">Administrátor</option>
-                </select>
-              </div>
+              <FloatingField
+                id="admin-role"
+                name="role"
+                as="select"
+                label="Role"
+                defaultValue={editingUser?.role || "child"}
+                className="w-full p-2.5 border rounded-xl bg-white text-gray-900 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="child">Dítě</option>
+                <option value="parent">Rodič</option>
+                <option value="user">Vedoucí</option>
+                <option value="admin">Administrátor</option>
+              </FloatingField>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1">
-                  Družina
-                </label>
-                <select
-                  name="patrolId"
-                  defaultValue={editingUser?.patrolId || "none"}
-                  className="w-full p-2.5 border rounded-xl bg-white text-gray-900 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="none">-- Bez družiny --</option>
-                  {patrols?.map((p: any) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <FloatingField
+                id="admin-patrol"
+                name="patrolId"
+                as="select"
+                label="Družina"
+                defaultValue={editingUser?.patrolId || "none"}
+                className="w-full p-2.5 border rounded-xl bg-white text-gray-900 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">-- Bez družiny --</option>
+                {patrols?.map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </FloatingField>
 
               {!editingUser && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">
-                    Heslo
-                  </label>
-                  <input
-                    name="password"
-                    type="text"
-                    defaultValue="skaut123"
-                    placeholder="Heslo"
-                    className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
+                <FloatingField
+                  id="admin-password"
+                  name="password"
+                  type="text"
+                  label="Heslo"
+                  defaultValue="skaut123"
+                  placeholder="Heslo"
+                  className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
               )}
 
               <button

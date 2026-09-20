@@ -1,4 +1,6 @@
 "use client";
+import FloatingField from "@/app/components/FloatingField";
+
 import { useState } from "react";
 import React from "react";
 import { Plus, X } from "lucide-react";
@@ -106,93 +108,77 @@ export default function MeetingsClient({
             {/* Formulář */}
             <div className="p-6 overflow-y-auto flex-1 pb-8">
               <form action={handleGenerateMeetings} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Název schůzek
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
+                <FloatingField
+                  id="title"
+                  label="Název schůzek"
+                  type="text"
+                  name="title"
+                  required
+                  placeholder="Např. Schůzka Vlků"
+                  className={inputClassName}
+                />
+
+                <FloatingField
+                  id="patrolId"
+                  as="select"
+                  label="Družina"
+                  name="patrolId"
+                  required
+                  className={inputClassName}
+                >
+                  <option value="">Vyberte družinu...</option>
+                  {patrols.map((patrol: any) => (
+                    <option key={patrol.id} value={patrol.id}>
+                      {patrol.name}
+                    </option>
+                  ))}
+                </FloatingField>
+                <div className="grid grid-cols-2 gap-4">
+                  <FloatingField
+                    id="startDate"
+                    label="Začátek (Datum)"
+                    type="date"
+                    name="startDate"
                     required
-                    placeholder="Např. Schůzka Vlků"
+                    className={inputClassName}
+                  />
+                  <FloatingField
+                    id="endDate"
+                    label="Konec (Datum)"
+                    type="date"
+                    name="endDate"
+                    required
                     className={inputClassName}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Družina
-                  </label>
-                  <select name="patrolId" required className={inputClassName}>
-                    <option value="">Vyberte družinu...</option>
-                    {patrols.map((patrol: any) => (
-                      <option key={patrol.id} value={patrol.id}>
-                        {patrol.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Začátek (Datum)
-                    </label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      required
-                      className={inputClassName}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Konec (Datum)
-                    </label>
-                    <input
-                      type="date"
-                      name="endDate"
-                      required
-                      className={inputClassName}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Čas začátku
-                    </label>
-                    <input
-                      type="time"
-                      name="startTime"
-                      required
-                      className={inputClassName}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Čas konce
-                    </label>
-                    <input
-                      type="time"
-                      name="endTime"
-                      required
-                      className={inputClassName}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Vynechat data (oddělit čárkou, např. 24.10.2024, 31.10.2024)
-                  </label>
-                  <textarea
-                    name="excludeDates"
-                    placeholder="24.10.2024, 31.10.2024"
-                    className={`${inputClassName} h-20 resize-none`}
+                  <FloatingField
+                    id="startTime"
+                    label="Čas začátku"
+                    type="time"
+                    name="startTime"
+                    required
+                    className={inputClassName}
+                  />
+                  <FloatingField
+                    id="endTime"
+                    label="Čas konce"
+                    type="time"
+                    name="endTime"
+                    required
+                    className={inputClassName}
                   />
                 </div>
+
+                <FloatingField
+                  id="excludeDates"
+                  as="textarea"
+                  label="Vyjmout datumy (oddělené čárkou, např. 24.12.2024, 31.12.2024)"
+                  name="excludeDates"
+                  placeholder=" "
+                  className={`${inputClassName} h-20 resize-none`}
+                />
 
                 <div className="flex gap-3 pt-4">
                   <button

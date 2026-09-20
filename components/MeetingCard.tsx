@@ -1,4 +1,6 @@
 "use client";
+import FloatingField from "@/app/components/FloatingField";
+
 import { useState } from "react";
 import React from "react";
 import {
@@ -202,39 +204,34 @@ export default function MeetingCard({
                   >
                     <input type="hidden" name="id" value={meeting.id} />
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">
-                        Název
-                      </label>
-                      <input
-                        type="text"
-                        name="title"
-                        required
-                        value={editedTitle}
-                        onChange={(e) => setEditedTitle(e.target.value)}
-                        className={inputClassName}
-                      />
-                    </div>
+                    <FloatingField
+                      id="title"
+                      name="title"
+                      label="Název"
+                      type="text"
+                      required
+                      value={editedTitle}
+                      onChange={(e) => setEditedTitle(e.target.value)}
+                      className={inputClassName}
+                    />
 
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1">
-                        Družina
-                      </label>
-                      <select
-                        name="patrolId"
-                        required
-                        value={editedPatrolId}
-                        onChange={(e) => setEditedPatrolId(e.target.value)}
-                        className={inputClassName}
-                      >
-                        <option value="">Vyberte družinu...</option>
-                        {patrols?.map((patrol: any) => (
-                          <option key={patrol.id} value={patrol.id}>
-                            {patrol.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <FloatingField
+                      id="patrolId"
+                      name="patrolId"
+                      as="select"
+                      label="Družina"
+                      required
+                      value={editedPatrolId}
+                      onChange={(e) => setEditedPatrolId(e.target.value)}
+                      className={inputClassName}
+                    >
+                      <option value="">Vyberte družinu...</option>
+                      {patrols.map((patrol: any) => (
+                        <option key={patrol.id} value={patrol.id}>
+                          {patrol.name}
+                        </option>
+                      ))}
+                    </FloatingField>
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">

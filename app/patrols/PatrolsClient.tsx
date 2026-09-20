@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import FloatingField from "@/app/components/FloatingField";
 import { Shield, Users, Clock, MapPin, Edit, X } from "lucide-react";
 
 export default function PatrolsClient({
@@ -132,30 +133,22 @@ export default function PatrolsClient({
             <form action={handleUpdate} className="p-6 space-y-4">
               <input type="hidden" name="id" value={editingPatrol.id} />
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Kdy mají pravidelnou schůzku?
-                </label>
-                <input
-                  type="text"
-                  name="schedule"
-                  defaultValue={editingPatrol.schedule || ""}
-                  placeholder="Např. Středa 16:30 - 18:00"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none transition-all"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Kde schůzka probíhá?
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  defaultValue={editingPatrol.location || ""}
-                  placeholder="Např. Hlavní klubovna"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none transition-all"
-                />
-              </div>
+              <FloatingField
+                id="patrol-schedule"
+                name="schedule"
+                label="Kdy mají pravidelnou schůzku?"
+                defaultValue={editingPatrol.schedule || ""}
+                placeholder="Např. Středa 16:30 - 18:00"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none transition-all"
+              />
+              <FloatingField
+                id="patrol-location"
+                name="location"
+                label="Kde schůzka probíhá?"
+                defaultValue={editingPatrol.location || ""}
+                placeholder="Např. Hlavní klubovna"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none transition-all"
+              />
 
               <button
                 type="submit"

@@ -1,4 +1,6 @@
 "use client";
+import FloatingField from "@/app/components/FloatingField";
+
 import { useState, useEffect } from "react";
 import {
   Search,
@@ -396,87 +398,74 @@ export default function MembersClient({
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Jméno a příjmení
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    placeholder="Např. Jan Novák"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Email (přihlašovací jméno)
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    placeholder="jan.novak@skaut.cz"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Družina
-                  </label>
-                  <select name="patrolId" className={inputClass}>
-                    <option value="">Bez družiny</option>
-                    {patrols.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Datum narození
-                  </label>
-                  <input type="date" name="birthDate" className={inputClass} />
-                </div>
+                <FloatingField
+                  id="name"
+                  label="Jméno a příjmení"
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="Např. Jan Novák"
+                  className={inputClass}
+                />
+                <FloatingField
+                  id="email"
+                  label="Email (přihlašovací jméno)"
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="jan.novak@skaut.cz"
+                  className={inputClass}
+                />
+                <FloatingField
+                  id="patrolId"
+                  as="select"
+                  name="patrolId"
+                  label="Družina"
+                  className={inputClass}
+                >
+                  <option value="">Bez družiny</option>
+                  {patrols.map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </FloatingField>
+                <FloatingField
+                  id="birthDate"
+                  label="Datum narození"
+                  type="date"
+                  name="birthDate"
+                  className={inputClass}
+                />
               </div>
 
               <div className="border-t-2 border-gray-100 pt-4">
                 <h3 className="font-extrabold text-gray-900 mb-4">Bydliště</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      Ulice a č.p.
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      placeholder="Skautská 123"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      Město
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      placeholder="Brno"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      PSČ
-                    </label>
-                    <input
-                      type="text"
-                      name="postalCode"
-                      placeholder="602 00"
-                      className={inputClass}
-                    />
-                  </div>
+                  <FloatingField
+                    id="address"
+                    label="Ulice a č.p."
+                    type="text"
+                    name="address"
+                    placeholder="Skautská 123"
+                    className={inputClass}
+                  />
+                  <FloatingField
+                    id="city"
+                    label="Město"
+                    type="text"
+                    name="city"
+                    placeholder="Brno"
+                    className={inputClass}
+                  />
+                  <FloatingField
+                    id="postalCode"
+                    label="PSČ"
+                    type="text"
+                    name="postalCode"
+                    placeholder="602 00"
+                    className={inputClass}
+                  />
                 </div>
               </div>
 
@@ -485,17 +474,14 @@ export default function MembersClient({
                   Kontakty na rodinu
                 </h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      Hlavní telefonní číslo (obecné)
-                    </label>
-                    <input
-                      type="text"
-                      name="parentPhone"
-                      placeholder="+420..."
-                      className={inputClass}
-                    />
-                  </div>
+                  <FloatingField
+                    id="parentPhone"
+                    label="Hlavní telefonní číslo (obecné)"
+                    type="text"
+                    name="parentPhone"
+                    placeholder="+420..."
+                    className={inputClass}
+                  />
                   <div className="grid grid-cols-2 gap-4">
                     <input
                       type="text"
@@ -542,26 +528,22 @@ export default function MembersClient({
               </div>
 
               <div className="border-t-2 border-gray-100 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Zdravotní upozornění
-                  </label>
-                  <textarea
-                    name="healthNote"
-                    placeholder="Alergie, léky..."
-                    className={`${inputClass} h-20`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Dietní omezení / Alergie jídlo
-                  </label>
-                  <textarea
-                    name="dietaryRestrictions"
-                    placeholder="Bezlepková dieta, ořechy..."
-                    className={`${inputClass} h-20`}
-                  />
-                </div>
+                <FloatingField
+                  id="healthNote"
+                  name="healthNote"
+                  as="textarea"
+                  label="Zdravotní upozornění"
+                  placeholder="Alergie, léky..."
+                  className={`${inputClass} h-20`}
+                />
+                <FloatingField
+                  id="dietaryRestrictions"
+                  name="dietaryRestrictions"
+                  as="textarea"
+                  label="Dietní omezení / Alergie jídlo"
+                  placeholder="Bezlepková dieta, ořechy..."
+                  className={`${inputClass} h-20`}
+                />
               </div>
 
               <button
@@ -605,93 +587,76 @@ export default function MembersClient({
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Jméno a příjmení
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    defaultValue={editingUser.name}
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Družina
-                  </label>
-                  <select
-                    name="patrolId"
-                    defaultValue={editingUser.patrolId || ""}
-                    className={inputClass}
-                  >
-                    <option value="">Bez družiny</option>
-                    {patrols.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Datum narození
-                  </label>
-                  <input
-                    type="date"
-                    name="birthDate"
-                    defaultValue={
-                      editingUser.birthDate
-                        ? new Date(editingUser.birthDate)
-                            .toISOString()
-                            .split("T")[0]
-                        : ""
-                    }
-                    className={inputClass}
-                  />
-                </div>
+                <FloatingField
+                  id="editName"
+                  label="Jméno a příjmení"
+                  type="text"
+                  name="name"
+                  defaultValue={editingUser.name}
+                  required
+                  className={inputClass}
+                />
+                <FloatingField
+                  id="editPatrolId"
+                  as="select"
+                  label="Družina"
+                  name="patrolId"
+                  defaultValue={editingUser.patrolId || ""}
+                  className={inputClass}
+                >
+                  <option value="">Bez družiny</option>
+                  {patrols.map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </FloatingField>
+                <FloatingField
+                  id="editBirthDate"
+                  label="Datum narození"
+                  type="date"
+                  name="birthDate"
+                  defaultValue={
+                    editingUser.birthDate
+                      ? new Date(editingUser.birthDate)
+                          .toISOString()
+                          .split("T")[0]
+                      : ""
+                  }
+                  className={inputClass}
+                />
               </div>
 
               <div className="border-t-2 border-gray-100 pt-4">
                 <h3 className="font-extrabold text-gray-900 mb-4">Bydliště</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      Ulice a č.p.
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      defaultValue={editingUser.address || ""}
-                      placeholder="Skautská 123"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      Město
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      defaultValue={editingUser.city || ""}
-                      placeholder="Brno"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      PSČ
-                    </label>
-                    <input
-                      type="text"
-                      name="postalCode"
-                      defaultValue={editingUser.postalCode || ""}
-                      placeholder="602 00"
-                      className={inputClass}
-                    />
-                  </div>
+                  <FloatingField
+                    id="address"
+                    label="Ulice a č.p."
+                    type="text"
+                    name="address"
+                    defaultValue={editingUser.address || ""}
+                    placeholder="Skautská 123"
+                    className={inputClass}
+                  />
+                  <FloatingField
+                    id="city"
+                    label="Město"
+                    type="text"
+                    name="city"
+                    defaultValue={editingUser.city || ""}
+                    placeholder="Brno"
+                    className={inputClass}
+                  />
+                  <FloatingField
+                    id="postalCode"
+                    label="PSČ"
+                    type="text"
+                    name="postalCode"
+                    defaultValue={editingUser.postalCode || ""}
+                    placeholder="602 00"
+                    className={inputClass}
+                  />
                 </div>
               </div>
 
@@ -700,61 +665,64 @@ export default function MembersClient({
                   Kontakty na rodinu
                 </h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-1">
-                      Hlavní telefonní číslo
-                    </label>
-                    <input
-                      type="text"
-                      name="parentPhone"
-                      defaultValue={editingUser.parentPhone || ""}
-                      placeholder="+420..."
-                      className={inputClass}
-                    />
-                  </div>
+                  <FloatingField
+                    id="parentPhone"
+                    label="Hlavní telefonní číslo"
+                    type="text"
+                    name="parentPhone"
+                    defaultValue={editingUser.parentPhone || ""}
+                    placeholder="+420..."
+                    className={inputClass}
+                  />
                   <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
+                    <FloatingField
+                      id="motherName"
                       name="motherName"
+                      label="Jméno matky"
                       defaultValue={editingUser.motherName || ""}
                       placeholder="Jméno matky"
                       className={inputClass}
                     />
-                    <input
-                      type="text"
+                    <FloatingField
+                      id="motherPhone"
                       name="motherPhone"
+                      label="Telefon matka"
                       defaultValue={editingUser.motherPhone || ""}
                       placeholder="Telefon matka"
                       className={inputClass}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
+                    <FloatingField
+                      id="fatherName"
                       name="fatherName"
+                      label="Jméno otce"
                       defaultValue={editingUser.fatherName || ""}
                       placeholder="Jméno otce"
                       className={inputClass}
                     />
-                    <input
-                      type="text"
+                    <FloatingField
+                      id="fatherPhone"
                       name="fatherPhone"
+                      label="Telefon otec"
                       defaultValue={editingUser.fatherPhone || ""}
                       placeholder="Telefon otec"
                       className={inputClass}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
+                    <FloatingField
+                      id="otherGuardianName"
                       name="otherGuardianName"
+                      label="Jiný zástupce (jméno)"
                       defaultValue={editingUser.otherGuardianName || ""}
                       placeholder="Jiný zástupce (jméno)"
                       className={inputClass}
                     />
-                    <input
-                      type="text"
+                    <FloatingField
+                      id="otherGuardianPhone"
                       name="otherGuardianPhone"
+                      label="Jiný zástupce (telefon)"
                       defaultValue={editingUser.otherGuardianPhone || ""}
                       placeholder="Jiný zástupce (telefon)"
                       className={inputClass}
@@ -764,28 +732,24 @@ export default function MembersClient({
               </div>
 
               <div className="border-t-2 border-gray-100 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Zdravotní upozornění
-                  </label>
-                  <textarea
-                    name="healthNote"
-                    defaultValue={editingUser.healthNote || ""}
-                    placeholder="Astma, léky..."
-                    className={`${inputClass} h-20`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-1">
-                    Dietní omezení / Alergie jídlo
-                  </label>
-                  <textarea
-                    name="dietaryRestrictions"
-                    defaultValue={editingUser.dietaryRestrictions || ""}
-                    placeholder="Bezlepková dieta, ořechy..."
-                    className={`${inputClass} h-20`}
-                  />
-                </div>
+                <FloatingField
+                  id="healthNoteEdit"
+                  name="healthNote"
+                  as="textarea"
+                  label="Zdravotní upozornění"
+                  defaultValue={editingUser.healthNote || ""}
+                  placeholder="Astma, léky..."
+                  className={`${inputClass} h-20 resize-none`}
+                />
+                <FloatingField
+                  id="dietaryRestrictionsEdit"
+                  name="dietaryRestrictions"
+                  as="textarea"
+                  label="Dietní omezení / Alergie jídlo"
+                  defaultValue={editingUser.dietaryRestrictions || ""}
+                  placeholder="Bezlepková dieta, ořechy..."
+                  className={`${inputClass} h-20 resize-none`}
+                />
               </div>
 
               <button

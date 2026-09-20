@@ -155,37 +155,30 @@ export default function DocumentsClient({
               </button>
             </div>
             <form action={handleCreate} className="p-6 space-y-4 pb-12">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Název souboru/odkazu
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  placeholder="Např. Přihláška na tábor"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#00c853] focus:border-transparent outline-none transition-all"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  URL adresa (Odkaz ke stažení/zobrazení)
-                </label>
-                <input
-                  type="url"
-                  name="url"
-                  required
-                  placeholder="https://..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#00c853] focus:border-transparent outline-none transition-all"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">
-                  Kategorie
-                </label>
-                <input
+              <FloatingField
+                id="doc-name"
+                type="text"
+                name="name"
+                label="Název souboru/odkazu"
+                required
+                placeholder="Např. Přihláška na tábor"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#00c853] focus:border-transparent outline-none transition-all"
+              />
+              <FloatingField
+                id="doc-url"
+                type="url"
+                name="url"
+                label="URL adresa (Odkaz ke stažení/zobrazení)"
+                required
+                placeholder="https://..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 bg-white focus:ring-2 focus:ring-[#00c853] focus:border-transparent outline-none transition-all"
+              />
+              <div>
+                <FloatingField
+                  id="doc-category"
                   type="text"
                   name="category"
+                  label="Kategorie"
                   list="cat-list"
                   required
                   placeholder="Např. Formuláře"
@@ -197,16 +190,17 @@ export default function DocumentsClient({
                   <option value="Pro vedoucí" />
                 </datalist>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-gray-700">Typ</label>
-                <select
-                  name="type"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-[#00c853] focus:border-transparent outline-none transition-all"
-                >
-                  <option value="pdf">Soubor (Ke stažení)</option>
-                  <option value="link">Odkaz (Otevřít na webu)</option>
-                </select>
-              </div>
+              <FloatingField
+                id="doc-targetRole"
+                as="select"
+                name="targetRole"
+                label="Viditelnost (Pro koho je soubor určen?)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 bg-white focus:ring-2 focus:ring-[#00c853] focus:border-transparent outline-none transition-all"
+              >
+                <option value="all">Všichni (Děti, Rodiče, Vedoucí)</option>
+                <option value="parent">Rodiče a Vedoucí</option>
+                <option value="user">Pouze Vedoucí (a Admini)</option>
+              </FloatingField>
               <button
                 type="submit"
                 className="w-full bg-[#00c853] hover:bg-[#00b34a] text-white font-bold py-3.5 rounded-xl mt-4 transition-colors"

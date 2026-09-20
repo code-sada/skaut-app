@@ -1,4 +1,6 @@
 "use client"
+import FloatingField from "@/app/components/FloatingField";
+
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 
@@ -34,13 +36,9 @@ export default function AddMeetingForm({ patrols, generateAction }: { patrols: a
                 setIsOpen(false)
               }} className="space-y-4">
                 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Název schůzek</label>
-                  <input type="text" name="title" required placeholder="Např. Schůzka Vlků" className={inputClassName} />
-                </div>
+                <FloatingField id="title" label="Název schůzek" type="text" name="title" required placeholder="Např. Schůzka Vlků" className={inputClassName} />
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Družina</label>
+                <FloatingField id="startDate" label="Družina</label>
                   <select name="patrolId" required className={inputClassName}>
                     <option value="">Vyberte družinu...</option>
                     {patrols.map((patrol) => (
@@ -51,33 +49,17 @@ export default function AddMeetingForm({ patrols, generateAction }: { patrols: a
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Datum první schůzky</label>
-                    <input type="date" name="startDate" required className={inputClassName} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Datum poslední</label>
-                    <input type="date" name="endDate" required className={inputClassName} />
-                  </div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Datum první schůzky" type="date" name="startDate" required className={inputClassName} />
+                  <FloatingField id="endDate" label="Datum poslední" type="date" name="endDate" required className={inputClassName} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Začátek</label>
-                    <input type="time" name="startTime" required className={inputClassName} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Konec</label>
-                    <input type="time" name="endTime" required className={inputClassName} />
-                  </div>
+                  <FloatingField id="startTime" label="Začátek" type="time" name="startTime" required className={inputClassName} />
+                  <FloatingField id="endTime" label="Konec" type="time" name="endTime" required className={inputClassName} />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Vynechat data (prázdniny, státní svátky)
-                    <span className="block text-xs font-normal text-gray-400 mt-1">Oddělte čárkou ve formátu D.M.RRRR (např. 24.10.2024, 31.10.2024)</span>
-                  </label>
-                  <input type="text" name="excludeDates" placeholder="28.10.2024, 25.12.2024" className={inputClassName} />
-                </div>
+                <FloatingField id="excludeDates" label="Vynechat data (prázdniny, státní svátky)
+                    <span className="block text-xs font-normal text-gray-400 mt-1">Oddělte čárkou ve formátu D.M.RRRR (např. 24.10.2024, 31.10.2024)</span>" type="text" name="excludeDates" placeholder="28.10.2024, 25.12.2024" className={inputClassName} />
 
                 <button type="submit" className="w-full mt-6 bg-[#1a237e] hover:bg-blue-900 text-white p-3 rounded-xl font-bold transition-colors">
                   Vygenerovat sérii schůzek

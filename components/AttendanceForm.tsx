@@ -2,6 +2,7 @@
 
 import { saveAttendance } from "@/app/actions";
 import { useState } from "react";
+import FloatingField from '@/app/components/FloatingField'
 
 export default function AttendanceForm({
   eventId,
@@ -79,13 +80,7 @@ export default function AttendanceForm({
           </label>
         </div>
 
-        <textarea
-          name="note"
-          defaultValue={currentNote || ""}
-          placeholder="Poznámka (např. přijdu později...)"
-          className="border border-gray-200 rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#00c853] outline-none resize-none"
-          rows={1}
-        />
+        <FloatingField id="attendance-note" name="note" as="textarea" label="" defaultValue={currentNote || ""} className="border border-gray-200 rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#00c853] outline-none resize-none" />
 
         <button
           type="submit"

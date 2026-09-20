@@ -35,3 +35,88 @@ body.modal-open {
   position: fixed;
   width: 100%;
 }
+
+/* Floating label input styles (centered placeholder-like label) */
+.floating {
+  position: relative;
+}
+
+/* adjusted focus color and label sizing for aesthetics */
+.floating-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb; /* slightly lighter gray */
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #0f172a; /* text color */
+  font-size: 0.95rem;
+  transition:
+    border-color 220ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  outline: none;
+  text-align: left; /* left-align input text and placeholder-like label */
+}
+
+.floating-input:focus {
+  box-shadow: none;
+}
+
+.floating label {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%) scale(1);
+  transform-origin: left top;
+  background: white; /* mask the border when floated */
+  padding: 0 0.35rem;
+  color: #c7d2da; /* lighter placeholder color */
+  pointer-events: none;
+  transition:
+    transform 200ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    top 200ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    font-size 200ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    color 200ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  font-weight: 600;
+  text-align: left;
+  width: auto;
+  font-size: 0.95rem; /* placeholder-like size when centered */
+}
+
+/* Focused or filled state: change border and float label */
+.floating:focus-within .floating-input {
+  border-color: #146cff; /* adjusted primary blue */
+  box-shadow:
+    0 6px 20px rgba(20, 108, 255, 0.08),
+    0 0 0 4px rgba(20, 108, 255, 0.06);
+}
+
+.floating:focus-within label,
+.floating .floating-input:not(:placeholder-shown) + label,
+.floating select.floating-input + label {
+  top: -0.55rem;
+  left: 1rem;
+  transform: translateY(0) scale(0.78);
+  font-size: 0.72rem; /* smaller when floated */
+  color: #475569; /* muted darker slate for readability */
+  z-index: 3;
+}
+
+/* Ensure the label masks the border cleanly */
+.floating label {
+  z-index: 2;
+}
+
+.floating:focus-within label {
+  z-index: 4;
+}
+
+/* Hide placeholder by default so it doesn't overlap with the resting label */
+.floating-input::placeholder {
+  opacity: 0;
+  transition: opacity 200ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+/* Show placeholder when focused and label is floating */
+.floating:focus-within .floating-input::placeholder {
+  opacity: 1;
+}
