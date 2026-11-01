@@ -1,23 +1,12 @@
-import { PrismaClient } from "@prisma/client";
-import { cookies } from "next/headers";
 import PatrolsClient from "./PatrolsClient";
 import { updatePatrolInfo } from "@/app/actions";
-
-const prisma = new PrismaClient();
+import { prisma, getSessionUser, MANAGEMENT_ROLES } from "@/lib/auth";
 
 export default async function PatrolsPage() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-
-  let currentUser = null;
-  if (userId) {
-    currentUser = await prisma.user.findUnique({ where: { id: userId } });
-  }
-
+  const currentUser = await getSessionUser();
   const role = currentUser?.role;
-  const canManage = role === "admin" || role === "user" || role === "leader";
+  const canManage = MANAGEMENT_ROLES.has(role || "");
 
-  // Stáhneme družiny včetně jejich členů a nových polí pro schůzky
   const patrols = await prisma.patrol.findMany({
     include: {
       users: { select: { id: true, name: true, role: true } },

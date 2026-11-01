@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 interface ClientAppShellProps {
   sidebar: ReactNode;
@@ -13,6 +14,11 @@ export default function ClientAppShell({
   children,
 }: ClientAppShellProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -28,7 +34,6 @@ export default function ClientAppShell({
 
   return (
     <div className="flex h-screen w-full bg-gray-50">
-      {/* Tmavé pozadí na mobilu při rozbaleném menu */}
       {isMobileOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm transition-opacity"
@@ -36,7 +41,6 @@ export default function ClientAppShell({
         />
       )}
 
-      {/* Boční menu - z-index pouze na mobilu (aby přejelo obsah), na PC je z-auto, aby nepřekáželo modálům */}
       <div
         className={`
         fixed inset-y-0 left-0 w-64 bg-white transform transition-transform duration-300 flex flex-col shadow-2xl md:shadow-none shrink-0
@@ -46,9 +50,10 @@ export default function ClientAppShell({
       >
         <div className="flex-1 overflow-y-auto w-full">{sidebar}</div>
 
-        {/* Křížek na mobilu */}
         {isMobileOpen && (
           <button
+            type="button"
+            aria-label="Zavřít menu"
             onClick={() => setIsMobileOpen(false)}
             className="md:hidden absolute top-4 -right-12 p-2 bg-white rounded-full shadow-md text-gray-600 border border-gray-100 focus:outline-none"
           >
@@ -57,6 +62,7 @@ export default function ClientAppShell({
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -70,9 +76,10 @@ export default function ClientAppShell({
       </div>
 
       <div className="flex-1 flex flex-col h-screen min-w-0">
-        {/* MOBILNÍ HLAVIČKA - čistý flex bez omezujícího z-indexu */}
         <div className="md:hidden flex items-center bg-white border-b w-full shrink-0">
           <button
+            type="button"
+            aria-label="Otevřít hlavní menu"
             onClick={() => setIsMobileOpen(true)}
             className="p-4 text-gray-600 focus:outline-none shrink-0"
           >
@@ -81,6 +88,7 @@ export default function ClientAppShell({
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -90,15 +98,14 @@ export default function ClientAppShell({
               />
             </svg>
           </button>
-          {/* Obal pro Header */}
           <div className="flex-1 min-w-0">{header}</div>
         </div>
 
-        {/* DESKTOP HLAVIČKA - čistý blok */}
         <div className="hidden md:block shrink-0">{header}</div>
 
-        {/* HLAVNÍ OBSAH - odstraněno relative a z-10, tma teď může "ven" na zbytek stránky */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>
+        <main id="main-content" className="flex-1 overflow-y-auto bg-gray-50">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -1,40 +1,27 @@
-import { PrismaClient } from "@prisma/client";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { Tent, Compass, ArrowRight } from "lucide-react";
-
-const prisma = new PrismaClient();
+import { prisma, getSessionUser, MANAGEMENT_ROLES } from "@/lib/auth";
 
 export default async function DashboardPage() {
-  // 1. Získání přihlášeného uživatele včetně jeho družiny
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
+  const currentUser = await getSessionUser(true);
+  const canManage = MANAGEMENT_ROLES.has(currentUser?.role || "");
+  const userPatrolName = (currentUser as any)?.patrol?.name;
 
-  let currentUser = null;
-  if (userId) {
-    currentUser = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { patrol: true },
-    });
-  }
-
-  const userPatrolName = currentUser?.patrol?.name;
-
-  // 2. Nejbližší výprava (OPRAVENÝ FILTR BEZ NULL)
+  // 2. Nejbližší výprava (S ROW-LEVEL SECURITY)
   const eventWhereClause: any = {
     date: { gte: new Date() },
   };
 
-  if (userPatrolName) {
-    // Ukáže akce bez uvedené družiny (prázdný text), pro "Všechny", NEBO přímo pro družinu uživatele
-    eventWhereClause.OR = [
-      { targetPatrol: "" },
-      { targetPatrol: "Všichni" },
-      { targetPatrol: userPatrolName },
-    ];
-  } else {
-    // Pro adminy nebo uživatele bez družiny
-    eventWhereClause.OR = [{ targetPatrol: "" }, { targetPatrol: "Všichni" }];
+  if (!canManage) {
+    if (userPatrolName) {
+      eventWhereClause.OR = [
+        { targetPatrol: "" },
+        { targetPatrol: "Všichni" },
+        { targetPatrol: userPatrolName },
+      ];
+    } else {
+      eventWhereClause.OR = [{ targetPatrol: "" }, { targetPatrol: "Všichni" }];
+    }
   }
 
   const nextEvent = await prisma.event.findFirst({
@@ -49,6 +36,8 @@ export default async function DashboardPage() {
 
   if (currentUser?.patrolId) {
     meetingWhereClause.patrolId = currentUser.patrolId;
+  } else if (!canManage) {
+    meetingWhereClause.patrolId = "none";
   }
 
   const nextMeeting = await prisma.meeting.findFirst({
@@ -59,7 +48,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 pb-20">
-      {/* Hlavička */}
       <div>
         <h1 className="text-3xl font-extrabold text-[#1a237e]">Přehled</h1>
         <p className="text-gray-500 mt-1">
@@ -67,7 +55,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Grid s 2 hlavními dlaždicemi */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* DLAŽDICE 1: NEJBLIŽŠÍ VÝPRAVA */}
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col group hover:shadow-md hover:border-green-200 transition-all">
@@ -91,7 +78,6 @@ export default async function DashboardPage() {
                     {new Date(nextEvent.date).toLocaleDateString("cs-CZ")} •{" "}
                     {nextEvent.location}
                   </p>
-                  {/* Zobrazí štítek jen pokud není prázdný a není to "Všichni" */}
                   {nextEvent.targetPatrol &&
                     nextEvent.targetPatrol !== "Všichni" && (
                       <span className="inline-block px-2.5 py-1 bg-white text-green-700 text-xs font-bold rounded-lg border border-green-200 shadow-sm">

@@ -1,12 +1,10 @@
 "use client";
 import FloatingField from "@/app/components/FloatingField";
-
-
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { loginUser } from "../actions";
 
-// Oddělená komponenta pro tlačítko, aby šlo využít useFormStatus pro načítání
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -23,11 +21,10 @@ function SubmitButton() {
 export default function LoginPage() {
   const [state, formAction] = useActionState(loginUser, { error: null });
 
-  // Funkce, která zachytí stisk klávesy Enter a odešle formulář
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.preventDefault(); // Zabrání probliknutí
-      e.currentTarget.form?.requestSubmit(); // Vynutí klasické odeslání
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
     }
   };
 
@@ -35,7 +32,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-2xl border border-gray-200 shadow-sm p-8 space-y-6">
         <div className="text-center">
-          <span className="text-3xl">⚜️</span>
+          <span className="text-3xl" aria-hidden="true">
+            ⚜️
+          </span>
           <h1 className="text-2xl font-bold text-gray-900 mt-2">
             Přihlášení do IS
           </h1>
@@ -45,34 +44,56 @@ export default function LoginPage() {
         </div>
 
         <form action={formAction} className="space-y-4">
-          {/* Vykreslení chybové hlášky, pokud nějaká přišla z backendu */}
           {state?.error && (
-            <div className="p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg border border-red-200 text-center animate-in fade-in">
+            <div
+              role="alert"
+              className="p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg border border-red-200 text-center animate-in fade-in"
+            >
               {state.error}
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <FloatingField label="Přihlašovací e-mail nebo jméno" type="text"
-                id="email"
-                name="email"
-                onKeyDown={handleKeyDown}
-                
-                
-                required
-                aria-label="Přihlašovací e-mail nebo jméno" />
+            <FloatingField
+              label="Přihlašovací e-mail nebo jméno"
+              type="text"
+              id="email"
+              name="email"
+              onKeyDown={handleKeyDown}
+              required
+              aria-label="Přihlašovací e-mail nebo jméno"
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <FloatingField label="Heslo" type="password"
-                id="password"
-                name="password"
-                onKeyDown={handleKeyDown}
-                
-                
-                required
-                aria-label="Heslo" />
+            <FloatingField
+              label="Heslo"
+              type="password"
+              id="password"
+              name="password"
+              onKeyDown={handleKeyDown}
+              required
+              aria-label="Heslo"
+            />
           </div>
+
+          <p className="text-[11px] text-gray-500 text-center leading-relaxed">
+            Přihlášením souhlasíte s{" "}
+            <Link
+              href="/terms"
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              Podmínkami používání
+            </Link>{" "}
+            a berete na vědomí{" "}
+            <Link
+              href="/privacy"
+              className="text-blue-600 hover:underline font-semibold"
+            >
+              Zásady ochrany osobních údajů (GDPR)
+            </Link>
+            .
+          </p>
 
           <SubmitButton />
         </form>

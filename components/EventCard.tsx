@@ -228,20 +228,59 @@ export default function EventCard({
 
                         {/* Objeví se pouze po zakliknutí jedné z možností */}
                         {status && (
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-2">
-                            <label className="block text-sm font-bold text-gray-700 mb-1">
-                              Poznámka{" "}
-                              <span className="font-normal text-gray-400">
-                                (alergie, léky, dřívější odjezd...)
-                              </span>
-                            </label>
-                            <textarea
-                              name="note"
-                              value={note}
-                              onChange={(e) => setNote(e.target.value)}
-                              placeholder="Např.: Jedu až v sobotu ráno..."
-                              className="w-full p-3 border rounded-xl bg-gray-50 text-gray-900 border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-20"
-                            />
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300 pt-2 space-y-2.5">
+                            {status === "NOT_GOING" && (
+                              <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                  Rychlá volba důvodu absence:
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {[
+                                    { label: "🤒 Nemoc / Lékař", tag: "[Nemoc] " },
+                                    { label: "👨‍👩‍👧 Rodinné důvody", tag: "[Rodina] " },
+                                    { label: "🏫 Škola / Kroužek", tag: "[Škola] " },
+                                    { label: "📌 Jiný důvod", tag: "[Jiné] " },
+                                  ].map((r) => (
+                                    <button
+                                      key={r.tag}
+                                      type="button"
+                                      onClick={() => {
+                                        const cleaned = note.replace(/^\[(Nemoc|Rodina|Škola|Jiné)\]\s*/i, "");
+                                        setNote(`${r.tag}${cleaned}`);
+                                      }}
+                                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                                        note.startsWith(r.tag.trim())
+                                          ? "bg-[#1a237e] text-white border-[#1a237e]"
+                                          : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                                      }`}
+                                    >
+                                      {r.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <div>
+                              <label className="block text-sm font-bold text-gray-700 mb-1">
+                                {status === "NOT_GOING" ? "Důvod absence / Poznámka" : "Poznámka"}{" "}
+                                <span className="font-normal text-gray-400">
+                                  {status === "NOT_GOING"
+                                    ? "(např. angína, horečka, rodinná oslava...)"
+                                    : "(alergie, léky, dřívější odjezd...)"}
+                                </span>
+                              </label>
+                              <textarea
+                                name="note"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                placeholder={
+                                  status === "NOT_GOING"
+                                    ? "Např.: [Nemoc] Má horečku a angínu..."
+                                    : "Např.: Jedu až v sobotu ráno..."
+                                }
+                                className="w-full p-3 border rounded-xl bg-gray-50 text-gray-900 border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-20"
+                              />
+                            </div>
                             <button
                               type="submit"
                               className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl font-bold transition-colors"

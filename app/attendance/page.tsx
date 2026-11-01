@@ -1,43 +1,39 @@
-import { PrismaClient } from "@prisma/client";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AttendanceClient from "./AttendanceClient";
-
-const prisma = new PrismaClient();
+import { prisma, getSessionUser, MANAGEMENT_ROLES } from "@/lib/auth";
 
 export default async function AttendancePage() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
+  const currentUser = await getSessionUser();
 
-  if (!userId) {
+  if (!currentUser) {
     redirect("/login");
   }
 
-  const currentUser = await prisma.user.findUnique({ where: { id: userId } });
-
-  // Ochrana - pustíme sem jen adminy a vedoucí
-  if (
-    currentUser?.role !== "admin" &&
-    currentUser?.role !== "user" &&
-    currentUser?.role !== "leader"
-  ) {
+  if (!MANAGEMENT_ROLES.has(currentUser.role)) {
     redirect("/");
   }
 
-  // 1. Stáhneme všechny děti (členy s družinou nebo rolí child/MEMBER)
   const children = await prisma.user.findMany({
     where: {
       OR: [{ role: "MEMBER" }, { role: "child" }, { patrolId: { not: null } }],
-      // Vyřadíme vedoucí
       NOT: {
         role: "admin",
       },
     },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, patrol: { select: { name: true } } },
+    select: {
+      id: true,
+      name: true,
+      patrolId: true,
+      patrol: { select: { id: true, name: true } },
+    },
   });
 
-  // 2. Stáhneme výpravy s docházkou
+  const patrols = await prisma.patrol.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
   const events = await prisma.event.findMany({
     orderBy: { date: "desc" },
     include: {
@@ -45,11 +41,11 @@ export default async function AttendancePage() {
     },
   });
 
-  // 3. Stáhneme schůzky s docházkou
   const meetings = await prisma.meeting.findMany({
     orderBy: { date: "desc" },
     include: {
       attendance: true,
+      patrol: { select: { id: true, name: true } },
     },
   });
 
@@ -57,6 +53,7 @@ export default async function AttendancePage() {
     <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-6 pb-20">
       <AttendanceClient
         childrenData={children}
+        patrolsData={patrols}
         eventsData={events}
         meetingsData={meetings}
       />

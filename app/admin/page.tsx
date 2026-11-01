@@ -1,28 +1,53 @@
-import { PrismaClient } from '@prisma/client'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import AdminContent from './AdminContent'
-import { createUser, editUser, forcePasswordReset, deleteUser } from '@/app/actions'
-
-const prisma = new PrismaClient()
+import { redirect } from "next/navigation";
+import AdminContent from "./AdminContent";
+import {
+  createUser,
+  editUser,
+  forcePasswordReset,
+  deleteUser,
+} from "@/app/actions";
+import { prisma, getSessionUser, SAFE_USER_SELECT } from "@/lib/auth";
 
 export default async function AdminPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get('userId')?.value
+  const currentUser = await getSessionUser();
+  if (!currentUser) redirect("/login");
+  if (currentUser.role !== "admin") redirect("/");
 
-  if (!userId) redirect('/login')
+  const rawUsers = await prisma.user.findMany({
+    orderBy: { name: "asc" },
+    select: {
+      ...SAFE_USER_SELECT,
+      password: true,
+      patrol: true,
+    },
+  });
 
-  const currentUser = await prisma.user.findUnique({ where: { id: userId } })
-  if (currentUser?.role !== 'admin') redirect('/') 
+  const users = rawUsers.map(({ password, ...u }) => ({
+    ...u,
+    hasAccount: Boolean(password && password.length > 0),
+    email: u.email.endsWith("@evidence.skautapp.local") ? "" : u.email,
+  }));
 
-  const users = await prisma.user.findMany({ 
-    orderBy: { name: 'asc' },
-    include: { patrol: true } 
-  })
-  
-  const patrols = await prisma.patrol.findMany({ 
-    orderBy: { name: 'asc' } 
-  })
+  const patrols = await prisma.patrol.findMany({
+    orderBy: { name: "asc" },
+  });
 
-  return <AdminContent users={users} patrols={patrols} currentUser={currentUser} createUser={createUser} editUser={editUser} forcePasswordReset={forcePasswordReset} deleteUser={deleteUser} />
+  const safeCurrentUser = {
+    id: currentUser.id,
+    name: currentUser.name,
+    email: currentUser.email,
+    role: currentUser.role,
+  };
+
+  return (
+    <AdminContent
+      users={users}
+      patrols={patrols}
+      currentUser={safeCurrentUser}
+      createUser={createUser}
+      editUser={editUser}
+      forcePasswordReset={forcePasswordReset}
+      deleteUser={deleteUser}
+    />
+  );
 }

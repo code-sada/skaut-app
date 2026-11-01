@@ -13,7 +13,6 @@ import {
   Users,
 } from "lucide-react";
 
-// Překladový slovník pro všechny možné role v DB
 const roleTranslations: { [key: string]: string } = {
   child: "Dítě",
   parent: "Rodič",
@@ -24,7 +23,6 @@ const roleTranslations: { [key: string]: string } = {
   member: "Člen",
 };
 
-// Slovník pro barvy štítků
 const roleColors: { [key: string]: string } = {
   admin: "bg-amber-100 text-amber-700",
   user: "bg-blue-100 text-blue-700",
@@ -46,7 +44,46 @@ export default function AdminContent({
 }: any) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [selectedExistingMemberId, setSelectedExistingMemberId] =
+    useState<string>("new");
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formRole, setFormRole] = useState("child");
+  const [formPatrolId, setFormPatrolId] = useState("none");
   const [isMounted, setIsMounted] = useState(false);
+
+  const activeAccountUsers = users.filter((u: any) => u.hasAccount !== false);
+  const membersWithoutAccount = users.filter(
+    (u: any) => u.hasAccount === false,
+  );
+
+  const openCreateModal = (preselectedMember?: any) => {
+    setEditingUser(null);
+    if (preselectedMember) {
+      setSelectedExistingMemberId(preselectedMember.id);
+      setFormName(preselectedMember.name || "");
+      setFormEmail(preselectedMember.email || "");
+      setFormRole(preselectedMember.role || "MEMBER");
+      setFormPatrolId(preselectedMember.patrolId || "none");
+    } else {
+      setSelectedExistingMemberId("new");
+      setFormName("");
+      setFormEmail("");
+      setFormRole("child");
+      setFormPatrolId("none");
+    }
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (user: any) => {
+    setEditingUser(user);
+    setSelectedExistingMemberId("new");
+    setFormName(user.name || "");
+    setFormEmail(user.email || "");
+    setFormRole(user.role || "child");
+    setFormPatrolId(user.patrolId || "none");
+    setIsModalOpen(true);
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -70,7 +107,6 @@ export default function AdminContent({
       className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto space-y-6"
       suppressHydrationWarning
     >
-      {/* HLAVIČKA STRÁNKY */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1a237e]">
@@ -81,25 +117,61 @@ export default function AdminContent({
           </p>
         </div>
         <button
-          onClick={() => {
-            setEditingUser(null);
-            setIsModalOpen(true);
-          }}
+          type="button"
+          onClick={() => openCreateModal()}
           className="flex items-center justify-center gap-2 bg-[#00c853] hover:bg-[#00b34a] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-sm shrink-0 w-full sm:w-auto"
         >
           <Plus className="w-5 h-5" /> Vytvořit účet
         </button>
       </div>
 
-      {/* SEZNAM UŽIVATELŮ */}
+      {/* ČLENOVÉ BEZ ÚČTU (POKUD NĚJACÍ JSOU) */}
+      {membersWithoutAccount.length > 0 && (
+        <div className="bg-blue-50/60 border border-blue-200 rounded-2xl p-5 space-y-3">
+          <div>
+            <h2 className="text-base font-extrabold text-[#1a237e]">
+              Členové v evidenci bez přihlašovacího účtu (
+              {membersWithoutAccount.length})
+            </h2>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Tito členové byli přidáni v sekci Členové. Účet jim založíš ručně
+              kliknutím na „Založit účet“.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {membersWithoutAccount.map((member: any) => (
+              <div
+                key={member.id}
+                className="bg-white p-3.5 rounded-xl border border-blue-100 flex items-center justify-between gap-3 shadow-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-bold text-sm text-gray-900 truncate">
+                    {member.name}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {member.patrol?.name || "Bez družiny"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openCreateModal(member)}
+                  className="px-3 py-1.5 rounded-lg bg-[#1a237e] hover:bg-blue-900 text-white text-xs font-bold shrink-0 flex items-center gap-1.5 transition-colors"
+                >
+                  <Key className="w-3.5 h-3.5" /> Založit účet
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-3 sm:space-y-4">
-        {users.map((user: any) => (
+        {activeAccountUsers.map((user: any) => (
           <div
             key={user.id}
             data-testid="user-card"
             className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 overflow-hidden"
           >
-            {/* Uživatel: Avatar + Jméno + Email + Družina */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <div className="w-10 h-10 rounded-full bg-blue-50 text-[#1a237e] font-bold flex items-center justify-center shrink-0 text-sm">
                 {user.name ? user.name.slice(0, 2).toUpperCase() : "??"}
@@ -125,7 +197,6 @@ export default function AdminContent({
               </div>
             </div>
 
-            {/* Štítky rolí + Akční tlačítka */}
             <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 shrink-0">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span
@@ -144,16 +215,16 @@ export default function AdminContent({
 
               <div className="flex items-center gap-1 ml-auto sm:ml-0">
                 <button
-                  onClick={() => {
-                    setEditingUser(user);
-                    setIsModalOpen(true);
-                  }}
+                  type="button"
+                  onClick={() => openEditModal(user)}
+                  aria-label={`Upravit účet ${user.name}`}
                   className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-gray-50 transition-colors"
                   title="Upravit profil"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => forcePasswordReset(user.id)}
                   className="p-2 text-gray-400 hover:text-orange-600 rounded-lg hover:bg-gray-50 transition-colors"
                   title="Vynutit změnu hesla"
@@ -186,13 +257,20 @@ export default function AdminContent({
 
       {/* MODÁLNÍ OKNO PRO VYTVOŘENÍ / ÚPRAVU UŽIVATELE */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={editingUser ? "Upravit účet" : "Vytvořit účet"}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm"
+        >
           <div className="bg-white text-gray-900 p-6 sm:p-8 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
             <div className="flex justify-between items-center mb-6 shrink-0">
               <h2 className="text-xl font-bold">
                 {editingUser ? "Upravit účet" : "Vytvořit účet"}
               </h2>
               <button
+                type="button"
+                aria-label="Zavřít modal"
                 onClick={() => setIsModalOpen(false)}
                 className="p-1 text-gray-400 hover:text-gray-700 rounded-lg"
               >
@@ -209,12 +287,54 @@ export default function AdminContent({
                 <input type="hidden" name="id" value={editingUser.id} />
               )}
 
+              {!editingUser && membersWithoutAccount.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                    Komu zakládáš účet?
+                  </label>
+                  <select
+                    name="existingMemberId"
+                    value={selectedExistingMemberId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedExistingMemberId(val);
+                      if (val === "new") {
+                        setFormName("");
+                        setFormEmail("");
+                        setFormRole("child");
+                        setFormPatrolId("none");
+                      } else {
+                        const found = membersWithoutAccount.find(
+                          (m: any) => m.id === val,
+                        );
+                        if (found) {
+                          setFormName(found.name || "");
+                          setFormEmail(found.email || "");
+                          setFormRole(found.role || "MEMBER");
+                          setFormPatrolId(found.patrolId || "none");
+                        }
+                      }
+                    }}
+                    className="w-full p-2.5 border rounded-xl bg-blue-50/50 text-gray-900 font-bold border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="new">+ Úplně nový uživatel</option>
+                    {membersWithoutAccount.map((m: any) => (
+                      <option key={m.id} value={m.id}>
+                        Dítě z Členů: {m.name} (
+                        {m.patrol?.name || "Bez družiny"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <FloatingField
                 id="admin-name"
                 name="name"
                 label="Jméno a příjmení"
-                defaultValue={editingUser?.name}
-                placeholder="Jan Novák"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Jméno a příjmení"
                 className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -223,9 +343,10 @@ export default function AdminContent({
                 id="admin-email"
                 name="email"
                 type="text"
-                label="E-mail"
-                defaultValue={editingUser?.email}
-                placeholder="email@skaut.cz"
+                label="Přihlašovací e-mail"
+                value={formEmail}
+                onChange={(e) => setFormEmail(e.target.value)}
+                placeholder="E-mail"
                 className="w-full p-2.5 border rounded-xl bg-white text-gray-900 placeholder-gray-400 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -235,9 +356,11 @@ export default function AdminContent({
                 name="role"
                 as="select"
                 label="Role"
-                defaultValue={editingUser?.role || "child"}
+                value={formRole}
+                onChange={(e) => setFormRole(e.target.value)}
                 className="w-full p-2.5 border rounded-xl bg-white text-gray-900 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+                <option value="MEMBER">Člen / Dítě</option>
                 <option value="child">Dítě</option>
                 <option value="parent">Rodič</option>
                 <option value="user">Vedoucí</option>
@@ -249,7 +372,8 @@ export default function AdminContent({
                 name="patrolId"
                 as="select"
                 label="Družina"
-                defaultValue={editingUser?.patrolId || "none"}
+                value={formPatrolId}
+                onChange={(e) => setFormPatrolId(e.target.value)}
                 className="w-full p-2.5 border rounded-xl bg-white text-gray-900 border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="none">-- Bez družiny --</option>

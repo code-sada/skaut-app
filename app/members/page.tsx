@@ -1,39 +1,44 @@
-import { PrismaClient } from "@prisma/client";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import MembersClient from "./MembersClient";
 import { approveUpdate, rejectUpdate } from "./actions";
-
-const prisma = new PrismaClient();
+import {
+  prisma,
+  getSessionUser,
+  MANAGEMENT_ROLES,
+  SAFE_USER_SELECT,
+  PUBLIC_USER_SELECT,
+} from "@/lib/auth";
 
 export default async function MembersPage() {
-  const cookieStore = await cookies();
-  const currentUserId = cookieStore.get("userId")?.value;
+  const currentUser = await getSessionUser();
+  if (!currentUser) redirect("/login");
 
-  const currentUser = currentUserId
-    ? await prisma.user.findUnique({ where: { id: currentUserId } })
-    : null;
-
-  const userRole = currentUser?.role || "MEMBER";
-  const isLeader = ["admin", "user", "leader", "LEADER"].includes(userRole);
+  const userRole = currentUser.role || "MEMBER";
+  const isLeader = MANAGEMENT_ROLES.has(userRole);
   if (!isLeader) redirect("/");
 
-  const allUsers = await prisma.user.findMany({
-    include: {
+  const rawUsers = await prisma.user.findMany({
+    select: {
+      ...SAFE_USER_SELECT,
+      password: true,
       patrol: true,
-      siblings: true,
-      siblingOf: true,
+      siblings: { select: PUBLIC_USER_SELECT },
+      siblingOf: { select: PUBLIC_USER_SELECT },
     },
   });
 
+  const allUsers = rawUsers.map(({ password, ...u }) => ({
+    ...u,
+    hasAccount: Boolean(password && password.length > 0),
+    email: u.email.endsWith("@evidence.skautapp.local") ? "" : u.email,
+  }));
+
   const patrols = await prisma.patrol.findMany();
 
-  const pendingUpdates = isLeader
-    ? await prisma.pendingUpdate.findMany({
-        include: { user: true },
-      })
-    : [];
+  const pendingUpdates = await prisma.pendingUpdate.findMany({
+    include: { user: { select: PUBLIC_USER_SELECT } },
+  });
 
   const showApprovals = pendingUpdates.length > 0;
 
@@ -135,7 +140,10 @@ export default async function MembersPage() {
                   </div>
                   <div className="flex gap-2 w-full md:w-auto">
                     <form
-                      action={approveUpdate.bind(null, update.id)}
+                      action={async () => {
+                        "use server";
+                        await approveUpdate(update.id);
+                      }}
                       className="flex-1 md:flex-none"
                     >
                       <button
@@ -146,7 +154,10 @@ export default async function MembersPage() {
                       </button>
                     </form>
                     <form
-                      action={rejectUpdate.bind(null, update.id)}
+                      action={async () => {
+                        "use server";
+                        await rejectUpdate(update.id);
+                      }}
                       className="flex-1 md:flex-none"
                     >
                       <button
@@ -167,7 +178,7 @@ export default async function MembersPage() {
       <MembersClient
         users={allUsers}
         patrols={patrols}
-        currentUserId={currentUserId}
+        currentUserId={currentUser.id}
         currentUserRole={userRole}
       />
     </div>

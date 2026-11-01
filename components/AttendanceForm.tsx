@@ -62,22 +62,6 @@ export default function AttendanceForm({
             <span className="text-xl">❌</span>
             <span className="text-xs font-bold text-red-700">Nejedu</span>
           </label>
-
-          {/* MOŽNÁ */}
-          <label
-            className={`flex-1 flex flex-col items-center justify-center gap-1 p-2 rounded-lg border-2 cursor-pointer transition-all ${status === "MOZNA" ? "border-yellow-500 bg-yellow-50" : "border-gray-200 hover:border-yellow-300 bg-white"}`}
-          >
-            <input
-              type="radio"
-              name="status"
-              value="MOZNA"
-              className="hidden"
-              checked={status === "MOZNA"}
-              onChange={() => setStatus("MOZNA")}
-            />
-            <span className="text-xl">🤔</span>
-            <span className="text-xs font-bold text-yellow-700">Možná</span>
-          </label>
         </div>
 
         <FloatingField id="attendance-note" name="note" as="textarea" label="" defaultValue={currentNote || ""} className="border border-gray-200 rounded-lg p-2 text-sm w-full focus:ring-2 focus:ring-[#00c853] outline-none resize-none" />

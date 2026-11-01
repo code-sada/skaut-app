@@ -21,7 +21,6 @@ import {
 
 export default function Header({
   notifications = [],
-  currentUser,
 }: {
   notifications?: any[];
   currentUser?: any;
@@ -29,7 +28,6 @@ export default function Header({
   const router = useRouter();
   const [isBellOpen, setIsBellOpen] = useState(false);
 
-  // Vyhledávací stav
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultGroup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +39,6 @@ export default function Header({
   const safeNotifications = notifications || [];
   const unreadCount = safeNotifications.filter((n) => !n.isRead).length;
 
-  // Klávesová zkratka Ctrl+K / Cmd+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -51,13 +48,13 @@ export default function Header({
       }
       if (e.key === "Escape") {
         setIsSearchOpen(false);
+        setIsBellOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Zavření při kliknutí mimo vyhledávač
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -68,7 +65,6 @@ export default function Header({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Debounce vyhledávání
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
@@ -98,9 +94,9 @@ export default function Header({
   const handleSelectResult = (href: string) => {
     setIsSearchOpen(false);
     setQuery("");
-    if (href.startsWith("http")) {
-      window.open(href, "_blank");
-    } else {
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      window.open(href, "_blank", "noopener,noreferrer");
+    } else if (href.startsWith("/")) {
       router.push(href);
     }
   };
@@ -121,15 +117,17 @@ export default function Header({
   };
 
   return (
-    // ZMĚNĚNO: z-[100] nahrazeno za z-30, aby hlavička neprorážela modální okna
     <header className="h-16 md:h-20 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shrink-0 relative z-30 w-full">
-      {/* VYHLEDÁVACÍ POLE */}
       <div className="flex-1 max-w-md relative" ref={searchRef}>
         <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-gray-400 absolute left-4 pointer-events-none" />
+          <Search
+            className="w-4 h-4 text-gray-400 absolute left-4 pointer-events-none"
+            aria-hidden="true"
+          />
           <input
             ref={inputRef}
             type="text"
+            aria-label="Globální vyhledávání"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -141,6 +139,8 @@ export default function Header({
           />
           {query ? (
             <button
+              type="button"
+              aria-label="Vymazat vyhledávání"
               onClick={() => {
                 setQuery("");
                 setResults([]);
@@ -157,9 +157,7 @@ export default function Header({
           )}
         </div>
 
-        {/* NAŠEPTÁVAČ A VÝSLEDKY */}
         {isSearchOpen && query.trim().length >= 2 && (
-          // ZMĚNĚNO: z-[150] nahrazeno za z-50
           <div className="fixed md:absolute top-16 md:top-14 left-0 right-0 md:left-0 md:right-auto md:w-[450px] bg-white border-b md:border border-gray-200 shadow-2xl md:rounded-2xl z-50 h-[calc(100dvh-4rem)] md:h-auto md:max-h-[60vh] overflow-y-auto overscroll-contain">
             {isLoading ? (
               <div className="p-8 flex items-center justify-center gap-3 text-gray-500 text-sm font-medium">
@@ -181,6 +179,7 @@ export default function Header({
                     {group.items.map((item) => (
                       <button
                         key={item.id}
+                        type="button"
                         onClick={() => handleSelectResult(item.href)}
                         className="w-full text-left px-5 py-3 hover:bg-blue-50/50 transition-colors flex items-center gap-4 group border-b border-gray-50 last:border-none"
                       >
@@ -210,6 +209,9 @@ export default function Header({
       {/* UPOZORNĚNÍ / ZVONEČEK */}
       <div className="flex items-center gap-2 relative z-50">
         <button
+          type="button"
+          aria-label={`Upozornění (${unreadCount} nepřečtených)`}
+          aria-expanded={isBellOpen}
           onClick={() => setIsBellOpen(!isBellOpen)}
           className="p-2.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors relative focus:outline-none"
         >
@@ -220,7 +222,6 @@ export default function Header({
         </button>
 
         {isBellOpen && (
-          // ZMĚNĚNO: z-[150] nahrazeno za z-50
           <div className="absolute top-14 right-0 w-80 bg-white border border-gray-100 shadow-2xl rounded-2xl z-50 overflow-hidden">
             <div className="bg-gray-50/80 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-extrabold text-gray-900 text-sm">
@@ -253,9 +254,11 @@ export default function Header({
                     </div>
                     {!notif.isRead && (
                       <button
+                        type="button"
                         onClick={() => handleRead(notif.id)}
                         className="text-blue-600 hover:text-blue-800 self-center p-1"
                         title="Označit jako přečtené"
+                        aria-label={`Označit upozornění ${notif.title} jako přečtené`}
                       >
                         <CheckCircle2 className="w-5 h-5" />
                       </button>

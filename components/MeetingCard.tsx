@@ -369,18 +369,49 @@ export default function MeetingCard({
                           {(status === "NOT_GOING" ||
                             (myAttendance?.status === "NOT_GOING" &&
                               !status)) && (
-                            <div className="pt-2">
-                              <label className="text-sm font-bold text-gray-700 block mb-1">
-                                Důvod absence (povinné)
-                              </label>
-                              <textarea
-                                name="note"
-                                required
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                placeholder="Musím k zubaři..."
-                                className={`${inputClassName} h-20 resize-none`}
-                              />
+                            <div className="pt-2 space-y-2">
+                              <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                  Kategorie důvodu:
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {[
+                                    { label: "🤒 Nemoc / Lékař", tag: "[Nemoc] " },
+                                    { label: "👨‍👩‍👧 Rodinné důvody", tag: "[Rodina] " },
+                                    { label: "🏫 Škola / Kroužek", tag: "[Škola] " },
+                                    { label: "📌 Jiný důvod", tag: "[Jiné] " },
+                                  ].map((r) => (
+                                    <button
+                                      key={r.tag}
+                                      type="button"
+                                      onClick={() => {
+                                        const cleaned = note.replace(/^\[(Nemoc|Rodina|Škola|Jiné)\]\s*/i, "");
+                                        setNote(`${r.tag}${cleaned}`);
+                                      }}
+                                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                                        note.startsWith(r.tag.trim())
+                                          ? "bg-[#1a237e] text-white border-[#1a237e]"
+                                          : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                                      }`}
+                                    >
+                                      {r.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-sm font-bold text-gray-700 block mb-1">
+                                  Důvod absence (povinné)
+                                </label>
+                                <textarea
+                                  name="note"
+                                  required
+                                  value={note}
+                                  onChange={(e) => setNote(e.target.value)}
+                                  placeholder="Např. [Nemoc] Musím k zubaři / Mám angínu..."
+                                  className={`${inputClassName} h-20 resize-none`}
+                                />
+                              </div>
                             </div>
                           )}
                           <button

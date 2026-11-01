@@ -1,145 +1,181 @@
-"use server"
-import { PrismaClient } from '@prisma/client'
-import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
+"use server";
 
-const prisma = new PrismaClient()
-
-const MANAGEMENT_ROLES = new Set(['admin', 'user', 'leader', 'LEADER'])
+import { revalidatePath } from "next/cache";
+import { prisma, MANAGEMENT_ROLES, getSessionUser } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 async function requireUser() {
-  const userId = (await cookies()).get('userId')?.value
-  if (!userId) throw new Error('Nepřihlášen')
-  const user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) throw new Error('Nepřihlášen')
-  return user
+  const user = await getSessionUser();
+  if (!user) throw new Error("Nepřihlášen");
+  return user;
 }
 
 async function requireManagementRole() {
-  const user = await requireUser()
-  if (!MANAGEMENT_ROLES.has(user.role)) throw new Error('Nemáte oprávnění')
-  return user
+  const user = await requireUser();
+  if (!MANAGEMENT_ROLES.has(user.role)) throw new Error("Nemáte oprávnění");
+  return user;
 }
 
-// 1. Vygenerování pravidelných schůzek (s vynecháním prázdnin)
+// 1. Vygenerování pravidelných schůzek (s vynecháním prázdnin a ochranou proti DoS)
 export async function generateMeetings(formData: FormData) {
-  await requireManagementRole()
-  const title = formData.get('title') as string
-  const patrolId = formData.get('patrolId') as string
-  const startDateStr = formData.get('startDate') as string
-  const endDateStr = formData.get('endDate') as string
-  const startTime = formData.get('startTime') as string
-  const endTime = formData.get('endTime') as string
-  const excludeDatesStr = formData.get('excludeDates') as string // Např. "24.10.2024, 31.10.2024"
+  await requireManagementRole();
+  const title = ((formData.get("title") as string) || "").trim().slice(0, 200);
+  const patrolId = ((formData.get("patrolId") as string) || "").trim();
+  const startDateStr = ((formData.get("startDate") as string) || "").trim();
+  const endDateStr = ((formData.get("endDate") as string) || "").trim();
+  const startTime = ((formData.get("startTime") as string) || "16:00").trim();
+  const endTime = ((formData.get("endTime") as string) || "18:00").trim();
+  const excludeDatesStr = (formData.get("excludeDates") as string) || "";
 
-  const excludeDates = excludeDatesStr.split(',').map(d => d.trim())
-  
-  let currentDate = new Date(`${startDateStr}T${startTime}:00`)
-  const endDate = new Date(`${endDateStr}T23:59:59`)
+  if (!title || !patrolId || !startDateStr || !endDateStr) {
+    throw new Error("Vyplňte prosím všechna povinná pole.");
+  }
 
-  const newMeetings = []
+  const excludeDates = excludeDatesStr
+    .split(",")
+    .map((d) => d.trim().replace(/\s/g, ""))
+    .filter(Boolean);
 
-  // Smyčka, která přičítá 7 dní (týden), dokud nedojdeme na datum konce
-  while (currentDate <= endDate) {
-    const formattedDate = currentDate.toLocaleDateString('cs-CZ').replace(/\s/g, '')
-    
-    // Pokud aktuální datum NENÍ v seznamu vynechaných (prázdniny), přidáme schůzku
+  const currentDate = new Date(`${startDateStr}T${startTime}:00`);
+  const endDate = new Date(`${endDateStr}T23:59:59`);
+
+  if (
+    isNaN(currentDate.getTime()) ||
+    isNaN(endDate.getTime()) ||
+    currentDate > endDate
+  ) {
+    throw new Error("Neplatné rozmezí datumů.");
+  }
+
+  const newMeetings = [];
+  const MAX_MEETINGS = 100;
+
+  while (currentDate <= endDate && newMeetings.length < MAX_MEETINGS) {
+    const formattedDate = currentDate
+      .toLocaleDateString("cs-CZ")
+      .replace(/\s/g, "");
+
     if (!excludeDates.includes(formattedDate)) {
       newMeetings.push({
         title,
         patrolId,
-        date: new Date(currentDate), // Klonujeme datum
+        date: new Date(currentDate),
         endTime,
-        location: "Klubovna"
-      })
+        location: "Klubovna",
+      });
     }
-    // Přidat 7 dní
-    currentDate.setDate(currentDate.getDate() + 7)
+    currentDate.setDate(currentDate.getDate() + 7);
   }
 
-  await prisma.meeting.createMany({ data: newMeetings })
-  revalidatePath('/meetings')
+  if (newMeetings.length > 0) {
+    await prisma.meeting.createMany({ data: newMeetings });
+  }
+  revalidatePath("/meetings");
+  revalidatePath("/calendar");
+  revalidatePath("/");
 }
 
 export async function deleteMeeting(formData: FormData) {
-  await requireManagementRole()
-  const id = formData.get('id') as string
-  if (!id) return
+  await requireManagementRole();
+  const id = ((formData.get("id") as string) || "").trim();
+  if (!id) return;
 
-  await prisma.meeting.delete({ where: { id } })
-  revalidatePath('/meetings')
+  await prisma.meeting.delete({ where: { id } });
+  revalidatePath("/meetings");
+  revalidatePath("/calendar");
+  revalidatePath("/");
 }
 
 export async function updateMeeting(formData: FormData) {
-  await requireManagementRole()
-  const id = formData.get('id') as string
-  const title = formData.get('title') as string
-  const patrolId = formData.get('patrolId') as string
-  const dateStr = formData.get('date') as string
-  const endTime = formData.get('endTime') as string
-  const location = (formData.get('location') as string) || 'Klubovna'
-  const comment = (formData.get('comment') as string) || null
+  await requireManagementRole();
+  const id = ((formData.get("id") as string) || "").trim();
+  const title = ((formData.get("title") as string) || "").trim().slice(0, 200);
+  const patrolId = ((formData.get("patrolId") as string) || "").trim();
+  const dateStr = ((formData.get("date") as string) || "").trim();
+  const endTime = ((formData.get("endTime") as string) || "").trim();
+  const location =
+    ((formData.get("location") as string) || "").trim().slice(0, 200) ||
+    "Klubovna";
+  const comment =
+    ((formData.get("comment") as string) || "").trim().slice(0, 2000) || null;
 
-  if (!id) return
+  if (!id || !title || !patrolId) return;
+
+  const parsedDate = dateStr ? new Date(dateStr) : new Date();
 
   await prisma.meeting.update({
     where: { id },
     data: {
       title,
       patrolId,
-      date: dateStr ? new Date(dateStr) : new Date(),
+      date: isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
       endTime,
       location,
-      comment
-    }
-  })
+      comment,
+    },
+  });
 
-  revalidatePath('/meetings')
+  revalidatePath("/meetings");
+  revalidatePath("/calendar");
+  revalidatePath("/");
 }
 
 // 2. Uložení docházky
 export async function saveMeetingAttendance(formData: FormData) {
-  const user = await requireUser()
-  const meetingId = formData.get('meetingId') as string
-  const status = formData.get('status') as string
-  const note = (formData.get('note') as string) || ''
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } })
-  if (!meeting) throw new Error('Schůzka nenalezena')
+  const user = await requireUser();
+  const meetingId = ((formData.get("meetingId") as string) || "").trim();
+  const status = ((formData.get("status") as string) || "").trim();
+  const note = ((formData.get("note") as string) || "").trim().slice(0, 1000);
+
+  if (!meetingId || !status) {
+    throw new Error("Vyberte prosím svou účast.");
+  }
+
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) throw new Error("Schůzka nenalezena");
   if (!MANAGEMENT_ROLES.has(user.role) && meeting.patrolId !== user.patrolId) {
-    throw new Error('Nemáte oprávnění')
+    throw new Error("Nemáte oprávnění");
   }
 
   const existing = await prisma.meetingAttendance.findFirst({
-    where: { userId: user.id, meetingId }
-  })
+    where: { userId: user.id, meetingId },
+  });
 
   if (existing) {
     await prisma.meetingAttendance.update({
       where: { id: existing.id },
-      data: { status, note }
-    })
+      data: { status, note },
+    });
   } else {
     await prisma.meetingAttendance.create({
-      data: { userId: user.id, meetingId, status, note }
-    })
+      data: { userId: user.id, meetingId, status, note },
+    });
   }
-  revalidatePath('/meetings')
+  revalidatePath("/meetings");
+  revalidatePath("/attendance");
 }
 
-// 3. Odeslání zprávy do chatu
+// 3. Odeslání zprávy do chatu (s Rate Limitingem)
 export async function sendMeetingMessage(formData: FormData) {
-  const user = await requireUser()
-  const meetingId = formData.get('meetingId') as string
-  const text = formData.get('text') as string
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } })
-  if (!meeting) throw new Error('Schůzka nenalezena')
-  if (!MANAGEMENT_ROLES.has(user.role) && meeting.patrolId !== user.patrolId) {
-    throw new Error('Nemáte oprávnění')
+  const user = await requireUser();
+  const meetingId = ((formData.get("meetingId") as string) || "").trim();
+  const text = ((formData.get("text") as string) || "").trim().slice(0, 1000);
+
+  if (!text) return;
+
+  const rate = checkRateLimit(`chat:${user.id}`, 20, 60 * 1000);
+  if (!rate.allowed) {
+    throw new Error("Odesíláte zprávy příliš rychle. Zkuste to za chvíli.");
   }
-  if (!text.trim()) return
+
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) throw new Error("Schůzka nenalezena");
+  if (!MANAGEMENT_ROLES.has(user.role) && meeting.patrolId !== user.patrolId) {
+    throw new Error("Nemáte oprávnění");
+  }
 
   await prisma.meetingMessage.create({
-    data: { text, userId: user.id, meetingId }
-  })
-  revalidatePath('/meetings')
+    data: { text, userId: user.id, meetingId },
+  });
+  revalidatePath("/meetings");
 }

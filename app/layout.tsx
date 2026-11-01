@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import { cookies } from "next/headers";
-import { PrismaClient } from "@prisma/client";
 import { logoutUser } from "./actions";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-// Importujeme náš nový interaktivní obal
 import ClientAppShell from "@/components/ClientAppShell";
-
-const inter = Inter({ subsets: ["latin"] });
-const prisma = new PrismaClient();
+import CookieBanner from "@/components/CookieBanner";
+import { prisma, getSessionUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "SKAUTAPP",
@@ -22,41 +17,54 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-
-  let currentUser = null;
+  const currentUser = await getSessionUser();
   let notifications: any[] = [];
 
-  if (userId) {
-    currentUser = await prisma.user.findUnique({ where: { id: userId } });
-    if (currentUser) {
-      notifications = await prisma.notification.findMany({
-        where: { userId: currentUser.id },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      });
-    }
+  if (currentUser) {
+    notifications = await prisma.notification.findMany({
+      where: { userId: currentUser.id },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
   }
+
+  const safeCurrentUser = currentUser
+    ? {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        role: currentUser.role,
+        mustChangePassword: currentUser.mustChangePassword,
+      }
+    : null;
 
   return (
     <html lang="cs">
-      <body className={`${inter.className} bg-gray-50 text-gray-900 font-sans`}>
-        {currentUser && !currentUser.mustChangePassword ? (
+      <body className="bg-gray-50 text-gray-900 font-sans antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[#1a237e] focus:text-white focus:rounded-lg focus:font-bold"
+        >
+          Přeskočit na hlavní obsah
+        </a>
+        {safeCurrentUser && !safeCurrentUser.mustChangePassword ? (
           <ClientAppShell
             sidebar={
-              /* @ts-ignore */
-              <Sidebar currentUser={currentUser} logoutUser={logoutUser} />
+              <Sidebar currentUser={safeCurrentUser} logoutUser={logoutUser} />
             }
             header={<Header notifications={notifications} />}
           >
             {children}
           </ClientAppShell>
         ) : (
-          <main className="flex flex-col min-h-screen w-full overflow-y-auto bg-gray-50">
+          <main
+            id="main-content"
+            className="flex flex-col min-h-screen w-full overflow-y-auto bg-gray-50"
+          >
             {children}
           </main>
         )}
+        <CookieBanner />
       </body>
     </html>
   );

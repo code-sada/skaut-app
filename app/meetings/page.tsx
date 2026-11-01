@@ -1,49 +1,62 @@
-import { PrismaClient } from '@prisma/client'
-import { cookies } from 'next/headers'
-import MeetingsClient from './MeetingsClient'
-import { deleteMeeting, generateMeetings, saveMeetingAttendance, sendMeetingMessage, updateMeeting } from './actions'
-
-const prisma = new PrismaClient()
+import MeetingsClient from "./MeetingsClient";
+import {
+  deleteMeeting,
+  generateMeetings,
+  saveMeetingAttendance,
+  sendMeetingMessage,
+  updateMeeting,
+} from "./actions";
+import {
+  prisma,
+  getSessionUser,
+  MANAGEMENT_ROLES,
+  PUBLIC_USER_SELECT,
+} from "@/lib/auth";
 
 export default async function SchuzkyPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get('userId')?.value
+  const currentUser = await getSessionUser(true);
 
-  let currentUser = null
-  if (userId) {
-    currentUser = await prisma.user.findUnique({ 
-      where: { id: userId },
-      include: { patrol: true } 
-    })
-  }
+  const role = currentUser?.role;
+  const canManage = MANAGEMENT_ROLES.has(role || "");
 
-  // Definice práv (změň si názvy rolí, jak je reálně máš v DB)
-  const role = currentUser?.role
-  const canManage = ['admin', 'leader', 'vedouci', 'user'].includes(role || '') // Zmiňoval jsi, že vedoucí je možná 'user'
-
-  // Logika zobrazení: Pokud jsi dítě (nemáš canManage), vidíš jen schůzky Tvojí družiny
-  const whereClause = canManage ? {} : { patrolId: currentUser?.patrolId || 'none' }
+  // Row-Level Security: Pokud nejsi vedoucí/admin, vidíš jen schůzky své družiny
+  const whereClause = canManage
+    ? {}
+    : { patrolId: currentUser?.patrolId || "none" };
 
   const meetings = await prisma.meeting.findMany({
     where: {
       ...whereClause,
-      date: { gte: new Date() } // Jen budoucí schůzky
+      date: { gte: new Date() },
     },
-    orderBy: { date: 'asc' },
+    orderBy: { date: "asc" },
     include: {
       patrol: true,
-      attendance: { include: { user: true } },
-      messages: { include: { user: true }, orderBy: { createdAt: 'asc' } }
-    }
-  })
+      attendance: { include: { user: { select: PUBLIC_USER_SELECT } } },
+      messages: {
+        include: { user: { select: PUBLIC_USER_SELECT } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
 
-  const patrols = await prisma.patrol.findMany() // Pro výběr v modalu přidávání
+  const patrols = await prisma.patrol.findMany();
+
+  const safeCurrentUser = currentUser
+    ? {
+        id: currentUser.id,
+        name: currentUser.name,
+        role: currentUser.role,
+        patrolId: currentUser.patrolId,
+        patrol: (currentUser as any).patrol || null,
+      }
+    : null;
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto pb-20">
-      <MeetingsClient 
+      <MeetingsClient
         meetings={meetings}
-        currentUser={currentUser}
+        currentUser={safeCurrentUser}
         canManage={canManage}
         patrols={patrols}
         saveMeetingAttendance={saveMeetingAttendance}
@@ -53,5 +66,5 @@ export default async function SchuzkyPage() {
         generateMeetingsAction={generateMeetings}
       />
     </div>
-  )
+  );
 }

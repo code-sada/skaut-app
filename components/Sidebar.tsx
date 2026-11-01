@@ -15,11 +15,12 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 
-// Překladový slovník pro role
 const roleTranslations: { [key: string]: string } = {
   child: "Dítě",
   parent: "Rodič",
   user: "Vedoucí",
+  leader: "Vedoucí",
+  LEADER: "Vedoucí",
   admin: "Administrátor",
   MEMBER: "Člen",
 };
@@ -28,13 +29,12 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
   let pathname = usePathname() || "/";
   pathname = pathname.replace(/\/+$|^$/g, "") || "/";
 
-  // Práva pro vedoucí a adminy
   const canSeeManagement =
     currentUser?.role === "admin" ||
     currentUser?.role === "user" ||
-    currentUser?.role === "leader";
+    currentUser?.role === "leader" ||
+    currentUser?.role === "LEADER";
 
-  // Základní položky menu pro všechny
   const nav = [
     { href: "/", label: "Přehled", icon: Home },
     { href: "/meetings", label: "Schůzky", icon: Compass },
@@ -67,15 +67,21 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
   }
 
   return (
-    <aside className="flex flex-col w-full h-full bg-white border-r border-gray-200">
-      {/* HORNÍ ČÁST (Logo, Menu, Admin) - zabere veškeré volné místo */}
+    <aside
+      aria-label="Hlavní navigace"
+      className="flex flex-col w-full h-full bg-white border-r border-gray-200"
+    >
       <div className="flex-1 flex flex-col overflow-y-auto">
-        <div className="h-20 flex items-center px-6 shrink-0">
-          <Tent className="text-[#00c853] w-7 h-7 mr-2" />
+        <Link
+          href="/"
+          title="Přejít na Přehled"
+          className="h-20 flex items-center px-6 shrink-0 hover:opacity-80 transition-opacity"
+        >
+          <Tent className="text-[#00c853] w-7 h-7 mr-2" aria-hidden="true" />
           <span className="font-extrabold text-[#1a237e] text-xl tracking-wide">
             SKAUT<span className="text-[#ffb300]">APP</span>
           </span>
-        </div>
+        </Link>
 
         <nav className="px-4 py-2 space-y-1.5 flex-1">
           {nav.map((item, idx) => {
@@ -85,9 +91,13 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
               <Link
                 key={`${item.href}-${idx}`}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm ${active ? "bg-gray-100 text-[#1a237e] font-bold" : "text-gray-500 hover:bg-gray-50 font-medium"}`}
               >
-                <Icon className={`w-5 h-5 ${active ? "text-blue-700" : ""}`} />{" "}
+                <Icon
+                  className={`w-5 h-5 ${active ? "text-blue-700" : ""}`}
+                  aria-hidden="true"
+                />{" "}
                 {item.label}
               </Link>
             );
@@ -96,23 +106,34 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
 
         {/* ADMIN SECTION */}
         {currentUser?.role === "admin" && (
-          <div className="px-4 pb-4 shrink-0">
+          <div className="px-4 pb-3 shrink-0">
             <div className="pt-4 border-t border-gray-100">
               <p className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
                 Administrace
               </p>
               <Link
                 href="/admin"
+                aria-current={isActive("/admin") ? "page" : undefined}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm ${isActive("/admin") ? "bg-gray-100 text-[#1a237e] font-bold" : "text-gray-500 hover:bg-gray-50 font-medium"}`}
               >
-                <Settings className="w-5 h-5" /> Správa účtů
+                <Settings className="w-5 h-5" aria-hidden="true" /> Správa účtů
               </Link>
             </div>
           </div>
         )}
+
+        <div className="px-6 py-2 text-[11px] text-gray-400 flex items-center gap-2 shrink-0">
+          <Link href="/privacy" className="hover:text-gray-600 underline">
+            GDPR & Soukromí
+          </Link>
+          <span>•</span>
+          <Link href="/terms" className="hover:text-gray-600 underline">
+            Podmínky
+          </Link>
+        </div>
       </div>
 
-      {/* SPODNÍ ČÁST (Profil) - je vytlačena úplně dolů */}
+      {/* SPODNÍ ČÁST (Profil) */}
       <div className="p-4 border-t border-gray-100 flex items-center justify-between shrink-0">
         <Link
           href="/profile"
@@ -136,6 +157,7 @@ export default function Sidebar({ currentUser, logoutUser }: any) {
             <button
               type="submit"
               title="Odhlásit se"
+              aria-label="Odhlásit se"
               className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all flex items-center justify-center"
             >
               <LogOut className="w-5 h-5" />

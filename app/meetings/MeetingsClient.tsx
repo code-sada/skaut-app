@@ -1,6 +1,5 @@
 "use client";
 import FloatingField from "@/app/components/FloatingField";
-
 import { useState } from "react";
 import React from "react";
 import { Plus, X } from "lucide-react";
@@ -18,6 +17,7 @@ export default function MeetingsClient({
   generateMeetingsAction,
 }: any) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (isAddModalOpen) {
@@ -31,8 +31,13 @@ export default function MeetingsClient({
   }, [isAddModalOpen]);
 
   const handleGenerateMeetings = async (formData: FormData) => {
-    await generateMeetingsAction(formData);
-    setIsAddModalOpen(false);
+    setFormError(null);
+    try {
+      await generateMeetingsAction(formData);
+      setIsAddModalOpen(false);
+    } catch (err: any) {
+      setFormError(err?.message || "Nepodařilo se vygenerovat schůzky.");
+    }
   };
 
   const inputClassName =
@@ -52,7 +57,11 @@ export default function MeetingsClient({
 
         {canManage && (
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            type="button"
+            onClick={() => {
+              setFormError(null);
+              setIsAddModalOpen(true);
+            }}
             className="flex items-center gap-2 bg-[#00c853] hover:bg-[#00b34a] text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm shrink-0"
           >
             <Plus className="w-5 h-5" /> Přidat schůzky
@@ -85,6 +94,9 @@ export default function MeetingsClient({
       {/* MODAL PRO PŘIDÁNÍ SCHŮZEK */}
       {isAddModalOpen && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Generovat schůzky"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setIsAddModalOpen(false)}
         >
@@ -92,12 +104,13 @@ export default function MeetingsClient({
             className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Hlavička */}
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
               <h2 className="text-xl font-bold text-[#1a237e]">
                 Generovat schůzky
               </h2>
               <button
+                type="button"
+                aria-label="Zavřít modal"
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-2 text-gray-400 hover:bg-gray-200 rounded-full transition-colors"
               >
@@ -105,9 +118,17 @@ export default function MeetingsClient({
               </button>
             </div>
 
-            {/* Formulář */}
             <div className="p-6 overflow-y-auto flex-1 pb-8">
               <form action={handleGenerateMeetings} className="space-y-4">
+                {formError && (
+                  <div
+                    role="alert"
+                    className="p-3 bg-red-50 text-red-700 text-sm font-bold rounded-xl border border-red-200"
+                  >
+                    {formError}
+                  </div>
+                )}
+
                 <FloatingField
                   id="title"
                   label="Název schůzek"
@@ -192,7 +213,7 @@ export default function MeetingsClient({
                     type="submit"
                     className="flex-1 bg-[#00c853] hover:bg-[#00b34a] text-white py-3 rounded-xl font-bold transition-colors"
                   >
-                    Generovat
+                    Vygenerovat sérii schůzek
                   </button>
                 </div>
               </form>

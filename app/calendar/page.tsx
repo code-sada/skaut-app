@@ -1,25 +1,42 @@
-import { PrismaClient } from "@prisma/client";
-import { Calendar as CalendarIcon, MapPin, Compass, Clock } from "lucide-react";
-
-const prisma = new PrismaClient();
+import { Calendar as CalendarIcon, MapPin, Compass } from "lucide-react";
+import { prisma, getSessionUser, MANAGEMENT_ROLES } from "@/lib/auth";
 
 export default async function CalendarPage() {
+  const currentUser = await getSessionUser(true);
+  const canManage = MANAGEMENT_ROLES.has(currentUser?.role || "");
+  const userPatrolName = (currentUser as any)?.patrol?.name;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Stáhneme nadcházející výpravy
+  // Row-Level Security pro výpravy
+  const eventWhere: any = { date: { gte: today } };
+  if (!canManage) {
+    eventWhere.OR = userPatrolName
+      ? [
+          { targetPatrol: "" },
+          { targetPatrol: "Všichni" },
+          { targetPatrol: userPatrolName },
+        ]
+      : [{ targetPatrol: "" }, { targetPatrol: "Všichni" }];
+  }
+
   const events = await prisma.event.findMany({
-    where: { date: { gte: today } },
+    where: eventWhere,
     orderBy: { date: "asc" },
   });
 
-  // Stáhneme nadcházející schůzky
+  // Row-Level Security pro schůzky
+  const meetingWhere: any = { date: { gte: today } };
+  if (!canManage) {
+    meetingWhere.patrolId = currentUser?.patrolId || "none";
+  }
+
   const meetings = await prisma.meeting.findMany({
-    where: { date: { gte: today } },
+    where: meetingWhere,
     orderBy: { date: "asc" },
   });
 
-  // Spojíme a seřadíme chronologicky
   const allActivities = [
     ...events.map((e) => ({ ...e, type: "EVENT" as const })),
     ...meetings.map((m) => ({ ...m, type: "MEETING" as const })),

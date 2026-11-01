@@ -1,25 +1,30 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-
-const prisma = new PrismaClient();
-
-const MANAGEMENT_ROLES = new Set(["admin", "user", "leader", "LEADER"]);
+import crypto from "crypto";
+import {
+  prisma,
+  MANAGEMENT_ROLES,
+  getSessionUser,
+  hashPassword,
+} from "@/lib/auth";
 
 async function requireUser() {
-  const userId = (await cookies()).get("userId")?.value;
-  if (!userId) throw new Error("Nepřihlášen");
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await getSessionUser();
   if (!user) throw new Error("Nepřihlášen");
   return user;
 }
 
+function cleanStr(val: FormDataEntryValue | null, maxLen = 250): string | null {
+  if (typeof val !== "string") return null;
+  const trimmed = val.trim();
+  return trimmed ? trimmed.slice(0, maxLen) : null;
+}
+
 export async function requestProfileUpdate(formData: FormData) {
   const requester = await requireUser();
-  const userId = formData.get("userId") as string;
-  const birthDateStr = formData.get("birthDate") as string;
+  const userId = ((formData.get("userId") as string) || "").trim();
+  const birthDateStr = ((formData.get("birthDate") as string) || "").trim();
 
   if (
     !userId ||
@@ -28,22 +33,30 @@ export async function requestProfileUpdate(formData: FormData) {
     throw new Error("Nemáte oprávnění");
   }
 
+  let parsedBirthDate: string | null = null;
+  if (birthDateStr) {
+    const d = new Date(birthDateStr);
+    if (!isNaN(d.getTime())) {
+      parsedBirthDate = d.toISOString();
+    }
+  }
+
   const updates = {
-    name: formData.get("name"),
-    patrolId: formData.get("patrolId") || null,
-    healthNote: formData.get("healthNote"),
-    dietaryRestrictions: formData.get("dietaryRestrictions"),
-    address: formData.get("address"),
-    city: formData.get("city"),
-    postalCode: formData.get("postalCode"),
-    parentPhone: formData.get("parentPhone"),
-    motherName: formData.get("motherName"),
-    motherPhone: formData.get("motherPhone"),
-    fatherName: formData.get("fatherName"),
-    fatherPhone: formData.get("fatherPhone"),
-    otherGuardianName: formData.get("otherGuardianName"),
-    otherGuardianPhone: formData.get("otherGuardianPhone"),
-    birthDate: birthDateStr ? new Date(birthDateStr).toISOString() : null,
+    name: cleanStr(formData.get("name"), 120),
+    patrolId: cleanStr(formData.get("patrolId"), 100),
+    healthNote: cleanStr(formData.get("healthNote"), 1000),
+    dietaryRestrictions: cleanStr(formData.get("dietaryRestrictions"), 1000),
+    address: cleanStr(formData.get("address"), 200),
+    city: cleanStr(formData.get("city"), 100),
+    postalCode: cleanStr(formData.get("postalCode"), 30),
+    parentPhone: cleanStr(formData.get("parentPhone"), 50),
+    motherName: cleanStr(formData.get("motherName"), 120),
+    motherPhone: cleanStr(formData.get("motherPhone"), 50),
+    fatherName: cleanStr(formData.get("fatherName"), 120),
+    fatherPhone: cleanStr(formData.get("fatherPhone"), 50),
+    otherGuardianName: cleanStr(formData.get("otherGuardianName"), 120),
+    otherGuardianPhone: cleanStr(formData.get("otherGuardianPhone"), 50),
+    birthDate: parsedBirthDate,
   };
 
   await prisma.pendingUpdate.create({
@@ -121,60 +134,115 @@ export async function createMember(formData: FormData) {
   if (!MANAGEMENT_ROLES.has(requester.role)) {
     return { success: false, error: "Nemáte oprávnění vytvářet členy." };
   }
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const patrolId = (formData.get("patrolId") as string) || null;
-  const birthDateStr = formData.get("birthDate") as string;
+  const name = cleanStr(formData.get("name"), 120);
+  const rawEmail = cleanStr(formData.get("email"), 150);
+  const patrolId = cleanStr(formData.get("patrolId"), 100);
+  const birthDateStr = cleanStr(formData.get("birthDate"), 50);
 
-  const parentPhone = formData.get("parentPhone") as string;
-  const motherName = formData.get("motherName") as string;
-  const motherPhone = formData.get("motherPhone") as string;
-  const fatherName = formData.get("fatherName") as string;
-  const fatherPhone = formData.get("fatherPhone") as string;
-  const otherGuardianName = formData.get("otherGuardianName") as string;
-  const otherGuardianPhone = formData.get("otherGuardianPhone") as string;
-
-  const healthNote = formData.get("healthNote") as string;
-  const dietaryRestrictions = formData.get("dietaryRestrictions") as string;
-  const address = formData.get("address") as string;
-  const city = formData.get("city") as string;
-  const postalCode = formData.get("postalCode") as string;
-
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-  });
-
-  if (existingUser) {
-    return {
-      success: false,
-      error: `Uživatel s e-mailem ${email} už existuje! Zvolte prosím jiný.`,
-    };
+  if (!name) {
+    return { success: false, error: "Jméno a příjmení je povinné." };
   }
 
+  const email =
+    rawEmail || `bez-uctu-${crypto.randomUUID()}@evidence.skautapp.local`;
+
+  if (rawEmail) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: rawEmail },
+    });
+
+    if (existingUser) {
+      return {
+        success: false,
+        error: `Člen nebo účet s e-mailem ${rawEmail} už existuje! Zvolte prosím jiný.`,
+      };
+    }
+  }
+
+  let parsedBirthDate: Date | null = null;
+  if (birthDateStr) {
+    const d = new Date(birthDateStr);
+    if (!isNaN(d.getTime())) parsedBirthDate = d;
+  }
+
+  // Vytvoří pouze člena v evidenci BEZ přihlašovacího účtu (password = "")
   await prisma.user.create({
     data: {
       name,
       email,
-      password: "skaut123",
+      password: "",
       role: "MEMBER",
       patrolId: patrolId || undefined,
-      birthDate: birthDateStr ? new Date(birthDateStr) : null,
-      parentPhone: parentPhone || null,
-      motherName: motherName || null,
-      motherPhone: motherPhone || null,
-      fatherName: fatherName || null,
-      fatherPhone: fatherPhone || null,
-      otherGuardianName: otherGuardianName || null,
-      otherGuardianPhone: otherGuardianPhone || null,
-      healthNote: healthNote || null,
-      dietaryRestrictions: dietaryRestrictions || null,
-      address: address || null,
-      city: city || null,
-      postalCode: postalCode || null,
+      birthDate: parsedBirthDate,
+      parentPhone: cleanStr(formData.get("parentPhone"), 50),
+      motherName: cleanStr(formData.get("motherName"), 120),
+      motherPhone: cleanStr(formData.get("motherPhone"), 50),
+      fatherName: cleanStr(formData.get("fatherName"), 120),
+      fatherPhone: cleanStr(formData.get("fatherPhone"), 50),
+      otherGuardianName: cleanStr(formData.get("otherGuardianName"), 120),
+      otherGuardianPhone: cleanStr(formData.get("otherGuardianPhone"), 50),
+      healthNote: cleanStr(formData.get("healthNote"), 1000),
+      dietaryRestrictions: cleanStr(formData.get("dietaryRestrictions"), 1000),
+      address: cleanStr(formData.get("address"), 200),
+      city: cleanStr(formData.get("city"), 100),
+      postalCode: cleanStr(formData.get("postalCode"), 30),
+      mustChangePassword: false,
+    },
+  });
+
+  revalidatePath("/members");
+  revalidatePath("/admin");
+  revalidatePath("/attendance");
+  return { success: true };
+}
+
+export async function activateMemberAccount(formData: FormData) {
+  const requester = await requireUser();
+  if (!MANAGEMENT_ROLES.has(requester.role)) {
+    return { success: false, error: "Nemáte oprávnění zakládat účty." };
+  }
+
+  const userId = cleanStr(formData.get("userId"), 100);
+  const email = cleanStr(formData.get("email"), 150);
+  const password = ((formData.get("password") as string) || "").trim();
+  const role = cleanStr(formData.get("role"), 50) || "MEMBER";
+
+  if (!userId || !email || !password) {
+    return {
+      success: false,
+      error: "Vyplňte prosím přihlašovací e-mail i heslo.",
+    };
+  }
+
+  if (password.length < 4) {
+    return {
+      success: false,
+      error: "Heslo musí mít alespoň 4 znaky.",
+    };
+  }
+
+  const existingWithEmail = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingWithEmail && existingWithEmail.id !== userId) {
+    return {
+      success: false,
+      error: `E-mail ${email} už používá jiný uživatel.`,
+    };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      email,
+      password: hashPassword(password),
+      role,
       mustChangePassword: true,
     },
   });
 
   revalidatePath("/members");
+  revalidatePath("/admin");
   return { success: true };
 }

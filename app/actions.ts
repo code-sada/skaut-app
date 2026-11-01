@@ -1,14 +1,17 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import crypto from "crypto";
-
-const prisma = new PrismaClient();
-
-const MANAGEMENT_ROLES = new Set(["admin", "user", "leader", "LEADER"]);
+import {
+  prisma,
+  MANAGEMENT_ROLES,
+  hashPassword,
+  setSessionCookies,
+  clearSessionCookies,
+  getSessionUser,
+  sanitizeUrl,
+} from "@/lib/auth";
+import { checkRateLimit, clearRateLimit } from "@/lib/rate-limit";
 
 export type SearchResultGroup = {
   category: string;
@@ -21,14 +24,27 @@ export type SearchResultGroup = {
   }[];
 };
 
-async function getCurrentUser() {
-  const userId = (await cookies()).get("userId")?.value;
-  if (!userId) return null;
-  return prisma.user.findUnique({ where: { id: userId } });
-}
+const ALLOWED_ROLES = new Set([
+  "child",
+  "parent",
+  "user",
+  "leader",
+  "LEADER",
+  "admin",
+  "MEMBER",
+  "member",
+]);
 
-async function requireAuthenticatedUser() {
-  const user = await getCurrentUser();
+const ALLOWED_ATTENDANCE_STATUSES = new Set([
+  "GOING",
+  "NOT_GOING",
+  "ANO",
+  "NE",
+  "PENDING",
+]);
+
+async function requireAuthenticatedUser(includePatrol = false) {
+  const user = await getSessionUser(includePatrol);
   if (!user) throw new Error("Nepřihlášen");
   return user;
 }
@@ -45,10 +61,6 @@ async function requireAdminRole() {
   return user;
 }
 
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
-}
-
 function removeDiacritics(text: string | null | undefined): string {
   if (!text) return "";
   return text
@@ -57,19 +69,30 @@ function removeDiacritics(text: string | null | undefined): string {
     .toLowerCase();
 }
 
-// --- GLOBÁLNÍ VYHLEDÁVÁNÍ ---
+function parseSafeDate(value: string | null | undefined): Date | null {
+  if (!value || !value.trim()) return null;
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+// --- GLOBÁLNÍ VYHLEDÁVÁNÍ (S ROW-LEVEL SECURITY) ---
 export async function globalSearch(
   query: string,
 ): Promise<SearchResultGroup[]> {
-  const cleanQuery = removeDiacritics(query.trim());
+  const cleanQuery = removeDiacritics((query || "").trim().slice(0, 100));
 
   if (!cleanQuery || cleanQuery.length < 2) {
     return [];
   }
 
-  const currentUser = await getCurrentUser();
-  const userRole = currentUser?.role || "MEMBER";
+  const currentUser = await getSessionUser(true);
+  if (!currentUser) {
+    return [];
+  }
+
+  const userRole = currentUser.role || "MEMBER";
   const isManagement = MANAGEMENT_ROLES.has(userRole);
+  const userPatrolName = (currentUser as any).patrol?.name;
 
   const results: SearchResultGroup[] = [];
 
@@ -100,7 +123,20 @@ export async function globalSearch(
     }
   }
 
+  // Row-level security pro výpravy
+  const eventWhere: any = {};
+  if (!isManagement) {
+    eventWhere.OR = userPatrolName
+      ? [
+          { targetPatrol: "" },
+          { targetPatrol: "Všichni" },
+          { targetPatrol: userPatrolName },
+        ]
+      : [{ targetPatrol: "" }, { targetPatrol: "Všichni" }];
+  }
+
   const allEvents = await prisma.event.findMany({
+    where: eventWhere,
     select: {
       id: true,
       title: true,
@@ -132,7 +168,13 @@ export async function globalSearch(
     });
   }
 
+  // Row-level security pro schůzky
+  const meetingWhere: any = isManagement
+    ? {}
+    : { patrolId: currentUser.patrolId || "none" };
+
   const allMeetings = await prisma.meeting.findMany({
+    where: meetingWhere,
     select: {
       id: true,
       title: true,
@@ -164,15 +206,18 @@ export async function globalSearch(
     });
   }
 
+  // Row-level security pro dokumenty
+  const documentWhere: any = isManagement
+    ? {}
+    : { NOT: { category: "Pro vedoucí" } };
+
   const allDocuments = await prisma.document.findMany({
+    where: documentWhere,
     select: { id: true, name: true, category: true, url: true },
   });
 
   const matchedDocuments = allDocuments
-    .filter((d) => {
-      if (!isManagement && d.category === "Pro vedoucí") return false;
-      return removeDiacritics(d.name).includes(cleanQuery);
-    })
+    .filter((d) => removeDiacritics(d.name).includes(cleanQuery))
     .slice(0, 4);
 
   if (matchedDocuments.length > 0) {
@@ -182,7 +227,7 @@ export async function globalSearch(
         id: d.id,
         title: d.name,
         subtitle: `Kategorie: ${d.category}`,
-        href: d.url || `/documents`,
+        href: sanitizeUrl(d.url) || `/documents`,
         type: "document",
       })),
     });
@@ -192,33 +237,45 @@ export async function globalSearch(
 }
 
 // --- PŘIHLÁŠENÍ / ODHLÁŠENÍ ---
-export async function loginUser(prevState: any, formData: FormData) {
-  // Přejmenováno z email na loginIdentifier a zbaveno zbytečných mezer na začátku/konci
-  const loginIdentifier = (formData.get("email") as string)?.trim();
-  const password = formData.get("password") as string;
+export async function loginUser(
+  prevState: { error: string | null },
+  formData: FormData,
+): Promise<{ error: string | null }> {
+  const loginIdentifier = ((formData.get("email") as string) || "")
+    .trim()
+    .slice(0, 150);
+  const password = (formData.get("password") as string) || "";
 
   if (!loginIdentifier || !password) {
     return { error: "Vyplňte prosím e-mail (nebo jméno) i heslo." };
   }
 
-  // Nyní databáze hledá shodu buď v e-mailu, nebo ve jménu
+  const rateKey = `login_fail:${loginIdentifier.toLowerCase()}`;
+
   const user = await prisma.user.findFirst({
     where: {
       OR: [{ email: loginIdentifier }, { name: loginIdentifier }],
     },
   });
 
-  if (!user || user.password !== hashPassword(password)) {
+  if (!user || !user.password || user.password !== hashPassword(password)) {
+    const rateCheck = checkRateLimit(rateKey, 10, 60 * 1000);
+    if (!rateCheck.allowed) {
+      return {
+        error: `Příliš mnoho neúspěšných pokusů. Zkuste to prosím znovu za ${rateCheck.retryAfterSeconds} s.`,
+      };
+    }
+    if (user && !user.password) {
+      return {
+        error:
+          "Tento člen zatím nemá založený přihlašovací účet. Požádejte vedoucího nebo administrátora.",
+      };
+    }
     return { error: "Nesprávný e-mail, jméno nebo heslo." };
   }
 
-  const cookieStore = await cookies();
-  cookieStore.set("userId", user.id, {
-    httpOnly: true,
-    path: "/",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  clearRateLimit(rateKey);
+  await setSessionCookies(user);
 
   if (user.mustChangePassword) {
     redirect("/change-password");
@@ -228,84 +285,195 @@ export async function loginUser(prevState: any, formData: FormData) {
 }
 
 export async function logoutUser() {
-  const cookieStore = await cookies();
-  cookieStore.delete("userId");
+  await clearSessionCookies();
   redirect("/login");
 }
 
 export async function forceChangePassword(formData: FormData) {
   const user = await requireAuthenticatedUser();
 
-  const newPassword = formData.get("newPassword") as string;
-  await prisma.user.update({
+  const newPassword = ((formData.get("newPassword") as string) || "").trim();
+  if (newPassword.length < 4) {
+    throw new Error("Heslo musí mít alespoň 4 znaky.");
+  }
+
+  const updated = await prisma.user.update({
     where: { id: user.id },
     data: { password: hashPassword(newPassword), mustChangePassword: false },
   });
+
+  await setSessionCookies(updated);
   redirect("/");
 }
 
-// --- VLASTNÍ PROFIL ---
+// --- VLASTNÍ PROFIL + GDPR PRÁVA ---
 export async function updateProfile(formData: FormData) {
   const user = await requireAuthenticatedUser();
 
-  const name = formData.get("name") as string;
-  const newPassword = formData.get("newPassword") as string;
+  const name = ((formData.get("name") as string) || "").trim().slice(0, 120);
+  const newPassword = (formData.get("newPassword") as string) || "";
+
+  if (!name) {
+    throw new Error("Jméno nesmí být prázdné.");
+  }
 
   const dataToUpdate: any = { name };
   if (newPassword && newPassword.length >= 4) {
     dataToUpdate.password = hashPassword(newPassword);
   }
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: user.id },
     data: dataToUpdate,
   });
+
+  await setSessionCookies(updated);
+  revalidatePath("/profile");
   revalidatePath("/expedition");
   redirect("/expedition");
+}
+
+export async function exportOwnData() {
+  const user = await requireAuthenticatedUser(true);
+  const [attendance, meetingAttendance, notifications] = await Promise.all([
+    prisma.attendance.findMany({
+      where: { userId: user.id },
+      include: { event: { select: { title: true, date: true } } },
+    }),
+    prisma.meetingAttendance.findMany({
+      where: { userId: user.id },
+      include: { meeting: { select: { title: true, date: true } } },
+    }),
+    prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  return {
+    exportedAt: new Date().toISOString(),
+    profile: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      patrol: (user as any).patrol?.name || null,
+      birthDate: user.birthDate,
+      address: user.address,
+      city: user.city,
+      postalCode: user.postalCode,
+      healthNote: user.healthNote,
+      dietaryRestrictions: user.dietaryRestrictions,
+      parentPhone: user.parentPhone,
+      motherName: user.motherName,
+      motherPhone: user.motherPhone,
+      fatherName: user.fatherName,
+      fatherPhone: user.fatherPhone,
+      otherGuardianName: user.otherGuardianName,
+      otherGuardianPhone: user.otherGuardianPhone,
+    },
+    eventAttendance: attendance.map((a) => ({
+      event: a.event.title,
+      date: a.event.date,
+      status: a.status,
+      note: a.note,
+    })),
+    meetingAttendance: meetingAttendance.map((m) => ({
+      meeting: m.meeting.title,
+      date: m.meeting.date,
+      status: m.status,
+      note: m.note,
+    })),
+    notificationsCount: notifications.length,
+  };
+}
+
+export async function deleteOwnAccount() {
+  const user = await requireAuthenticatedUser();
+  if (user.role === "admin") {
+    return {
+      success: false,
+      error:
+        "Hlavní administrátorský účet nelze smazat tímto tlačítkem z bezpečnostních důvodů.",
+    };
+  }
+
+  await prisma.$transaction([
+    prisma.attendance.deleteMany({ where: { userId: user.id } }),
+    prisma.meetingAttendance.deleteMany({ where: { userId: user.id } }),
+    prisma.meetingMessage.deleteMany({ where: { userId: user.id } }),
+    prisma.pendingUpdate.deleteMany({ where: { userId: user.id } }),
+    prisma.notification.deleteMany({ where: { userId: user.id } }),
+    prisma.user.delete({ where: { id: user.id } }),
+  ]);
+
+  await clearSessionCookies();
+  redirect("/login");
 }
 
 // --- SPRÁVA AKCÍ ---
 export async function updateEvent(formData: FormData) {
   await requireManagementRole();
-  const id = formData.get("id") as string;
+  const id = (formData.get("id") as string)?.trim();
+  if (!id) throw new Error("Chybí ID akce.");
 
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const location = formData.get("location") as string;
+  const title = ((formData.get("title") as string) || "").trim().slice(0, 200);
+  const description = ((formData.get("description") as string) || "")
+    .trim()
+    .slice(0, 5000);
+  const location = ((formData.get("location") as string) || "")
+    .trim()
+    .slice(0, 200);
 
-  const dateStr = formData.get("date") as string;
-  const date = dateStr ? new Date(dateStr) : new Date();
+  if (!title || !location) {
+    throw new Error("Název a místo akce jsou povinné.");
+  }
 
-  const dateEndStr = formData.get("dateEnd") as string;
-  const dateEnd = dateEndStr ? new Date(dateEndStr) : null;
+  const date = parseSafeDate(formData.get("date") as string) || new Date();
+  const dateEnd = parseSafeDate(formData.get("dateEnd") as string);
 
-  const meetingPoint = (formData.get("meetingPoint") as string) || null;
-  const returnPoint = (formData.get("returnPoint") as string) || null;
+  const meetingPoint =
+    ((formData.get("meetingPoint") as string) || "").trim().slice(0, 300) ||
+    null;
+  const returnPoint =
+    ((formData.get("returnPoint") as string) || "").trim().slice(0, 300) ||
+    null;
 
-  const targetPatrol = (formData.get("targetPatrol") as string) || "Všichni";
+  const targetPatrol =
+    ((formData.get("targetPatrol") as string) || "").trim().slice(0, 100) ||
+    "Všichni";
 
-  const rsvpDeadlineStr = formData.get("rsvpDeadline") as string;
-  const rsvpDeadline = rsvpDeadlineStr ? new Date(rsvpDeadlineStr) : null;
+  const rsvpDeadline = parseSafeDate(formData.get("rsvpDeadline") as string);
 
-  const capacityStr = formData.get("capacity") as string;
-  const capacity = capacityStr ? Number(capacityStr) : null;
+  const capacityRaw = Number(formData.get("capacity"));
+  const capacity =
+    !isNaN(capacityRaw) && capacityRaw > 0 ? Math.floor(capacityRaw) : null;
 
-  const priceChildren = Number(formData.get("priceChildren")) || 0;
-  const priceOlder = Number(formData.get("priceOlder")) || 0;
+  const priceChildren = Math.max(0, Number(formData.get("priceChildren")) || 0);
+  const priceOlder = Math.max(0, Number(formData.get("priceOlder")) || 0);
 
-  const paymentDeadlineStr = formData.get("paymentDeadline") as string;
-  const paymentDeadline = paymentDeadlineStr
-    ? new Date(paymentDeadlineStr)
-    : null;
+  const paymentDeadline = parseSafeDate(
+    formData.get("paymentDeadline") as string,
+  );
 
-  const paymentMethod = (formData.get("paymentMethod") as string) || null;
+  const paymentMethod =
+    ((formData.get("paymentMethod") as string) || "").trim().slice(0, 200) ||
+    null;
 
-  const equipment = (formData.get("equipment") as string) || null;
-  const food = (formData.get("food") as string) || null;
-  const accommodation = (formData.get("accommodation") as string) || null;
+  const equipment =
+    ((formData.get("equipment") as string) || "").trim().slice(0, 2000) || null;
+  const food =
+    ((formData.get("food") as string) || "").trim().slice(0, 500) || null;
+  const accommodation =
+    ((formData.get("accommodation") as string) || "").trim().slice(0, 500) ||
+    null;
 
-  const leaderInCharge = (formData.get("leaderInCharge") as string) || null;
-  const leaderContact = (formData.get("leaderContact") as string) || null;
+  const leaderInCharge =
+    ((formData.get("leaderInCharge") as string) || "").trim().slice(0, 150) ||
+    null;
+  const leaderContact =
+    ((formData.get("leaderContact") as string) || "").trim().slice(0, 150) ||
+    null;
 
   await prisma.event.update({
     where: { id },
@@ -332,61 +500,98 @@ export async function updateEvent(formData: FormData) {
     },
   });
 
+  revalidatePath("/expedition");
   revalidatePath("/");
   redirect("/");
 }
 
 export async function deleteEvent(formData: FormData) {
   await requireManagementRole();
-  const id = formData.get("id") as string;
+  const id = (formData.get("id") as string)?.trim();
+  if (!id) return;
   await prisma.event.delete({ where: { id } });
+  revalidatePath("/expedition");
   revalidatePath("/");
 }
 
 // --- SPRÁVA UŽIVATELŮ (ADMIN) ---
 export async function createUser(formData: FormData) {
   await requireAdminRole();
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const role = formData.get("role") as string;
-  const patrolId = formData.get("patrolId") as string;
-  const password = formData.get("password") as string;
+  const existingMemberId = (
+    (formData.get("existingMemberId") as string) || ""
+  ).trim();
+  const name = ((formData.get("name") as string) || "").trim().slice(0, 120);
+  const email = ((formData.get("email") as string) || "").trim().slice(0, 150);
+  const rawRole = ((formData.get("role") as string) || "child").trim();
+  const role = ALLOWED_ROLES.has(rawRole) ? rawRole : "child";
+  const patrolId = ((formData.get("patrolId") as string) || "").trim();
+  const password = (formData.get("password") as string) || "";
 
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      role,
-      patrolId: patrolId === "none" ? null : patrolId,
-      password: hashPassword(password),
-      mustChangePassword: true,
-    },
-  });
+  if (!name || !email || !password) {
+    throw new Error("Jméno, e-mail a heslo jsou povinné.");
+  }
+
+  if (existingMemberId && existingMemberId !== "new") {
+    await prisma.user.update({
+      where: { id: existingMemberId },
+      data: {
+        name,
+        email,
+        role,
+        patrolId: !patrolId || patrolId === "none" ? null : patrolId,
+        password: hashPassword(password),
+        mustChangePassword: true,
+      },
+    });
+  } else {
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        role,
+        patrolId: !patrolId || patrolId === "none" ? null : patrolId,
+        password: hashPassword(password),
+        mustChangePassword: true,
+      },
+    });
+  }
   revalidatePath("/admin");
+  revalidatePath("/members");
 }
 
 export async function editUser(formData: FormData) {
-  await requireAdminRole();
-  const id = formData.get("id") as string;
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const role = formData.get("role") as string;
-  const patrolId = formData.get("patrolId") as string;
+  const admin = await requireAdminRole();
+  const id = ((formData.get("id") as string) || "").trim();
+  const name = ((formData.get("name") as string) || "").trim().slice(0, 120);
+  const email = ((formData.get("email") as string) || "").trim().slice(0, 150);
+  const rawRole = ((formData.get("role") as string) || "child").trim();
+  const role = ALLOWED_ROLES.has(rawRole) ? rawRole : "child";
+  const patrolId = ((formData.get("patrolId") as string) || "").trim();
 
-  await prisma.user.update({
+  if (!id || !name || !email) {
+    throw new Error("Chybí povinné údaje.");
+  }
+
+  const updated = await prisma.user.update({
     where: { id },
     data: {
       name,
       email,
       role,
-      patrolId: patrolId === "none" ? null : patrolId,
+      patrolId: !patrolId || patrolId === "none" ? null : patrolId,
     },
   });
+
+  if (updated.id === admin.id) {
+    await setSessionCookies(updated);
+  }
+
   revalidatePath("/admin");
 }
 
 export async function forcePasswordReset(id: string) {
   await requireAdminRole();
+  if (!id) return;
   await prisma.user.update({
     where: { id },
     data: { mustChangePassword: true },
@@ -395,9 +600,9 @@ export async function forcePasswordReset(id: string) {
 }
 
 export async function deleteUser(formData: FormData) {
-  await requireAdminRole();
-  const id = formData.get("id") as string;
-  if (!id) return;
+  const admin = await requireAdminRole();
+  const id = ((formData.get("id") as string) || "").trim();
+  if (!id || id === admin.id) return;
 
   await prisma.user.delete({
     where: { id },
@@ -406,13 +611,30 @@ export async function deleteUser(formData: FormData) {
 }
 
 export async function saveAttendance(formData: FormData) {
-  const user = await requireAuthenticatedUser();
-  const eventId = formData.get("eventId") as string;
-  const status = formData.get("status") as string;
-  const note = (formData.get("note") as string) || "";
+  const user = await requireAuthenticatedUser(true);
+  const eventId = ((formData.get("eventId") as string) || "").trim();
+  const status = ((formData.get("status") as string) || "").trim();
+  const note = ((formData.get("note") as string) || "").trim().slice(0, 1000);
 
-  if (!eventId || !status) {
-    throw new Error("Chybí data pro uložení účasti.");
+  if (!eventId || !status || !ALLOWED_ATTENDANCE_STATUSES.has(status)) {
+    throw new Error("Chybí nebo jsou neplatná data pro uložení účasti.");
+  }
+
+  // Row-Level Security: ověření, že akce existuje a uživatel k ní má přístup
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) {
+    throw new Error("Akce nebyla nalezena.");
+  }
+
+  const isManagement = MANAGEMENT_ROLES.has(user.role);
+  const userPatrolName = (user as any).patrol?.name;
+  if (
+    !isManagement &&
+    event.targetPatrol &&
+    event.targetPatrol !== "Všichni" &&
+    event.targetPatrol !== userPatrolName
+  ) {
+    throw new Error("Nemáte oprávnění k této akci.");
   }
 
   const existingAttendance = await prisma.attendance.findFirst({
@@ -438,11 +660,77 @@ export async function saveAttendance(formData: FormData) {
     });
   }
 
+  revalidatePath("/expedition");
+  revalidatePath("/attendance");
+  revalidatePath("/");
+}
+
+export async function adminSaveAttendance(formData: FormData) {
+  await requireManagementRole();
+  const userId = ((formData.get("userId") as string) || "").trim();
+  const activityId = ((formData.get("activityId") as string) || "").trim();
+  const activityType = ((formData.get("activityType") as string) || "").trim();
+  const status = ((formData.get("status") as string) || "").trim();
+  const note = ((formData.get("note") as string) || "").trim().slice(0, 1000);
+
+  if (!userId || !activityId || !["EVENT", "MEETING"].includes(activityType)) {
+    throw new Error("Neplatné údaje pro uložení docházky.");
+  }
+
+  if (status === "CLEAR") {
+    if (activityType === "EVENT") {
+      await prisma.attendance.deleteMany({
+        where: { userId, eventId: activityId },
+      });
+    } else {
+      await prisma.meetingAttendance.deleteMany({
+        where: { userId, meetingId: activityId },
+      });
+    }
+  } else {
+    if (!ALLOWED_ATTENDANCE_STATUSES.has(status)) {
+      throw new Error("Neplatný stav účasti.");
+    }
+    if (activityType === "EVENT") {
+      const existing = await prisma.attendance.findFirst({
+        where: { userId, eventId: activityId },
+      });
+      if (existing) {
+        await prisma.attendance.update({
+          where: { id: existing.id },
+          data: { status, note },
+        });
+      } else {
+        await prisma.attendance.create({
+          data: { userId, eventId: activityId, status, note },
+        });
+      }
+    } else {
+      const existing = await prisma.meetingAttendance.findFirst({
+        where: { userId, meetingId: activityId },
+      });
+      if (existing) {
+        await prisma.meetingAttendance.update({
+          where: { id: existing.id },
+          data: { status, note },
+        });
+      } else {
+        await prisma.meetingAttendance.create({
+          data: { userId, meetingId: activityId, status, note },
+        });
+      }
+    }
+  }
+
+  revalidatePath("/attendance");
+  revalidatePath("/expedition");
+  revalidatePath("/meetings");
   revalidatePath("/");
 }
 
 export async function markNotificationAsRead(id: string) {
   const user = await requireAuthenticatedUser();
+  if (!id) return;
   await prisma.notification.updateMany({
     where: { id, userId: user.id },
     data: { isRead: true },
@@ -453,42 +741,76 @@ export async function markNotificationAsRead(id: string) {
 export async function createEvent(formData: FormData) {
   const user = await requireManagementRole();
 
-  const title = formData.get("title") as string;
+  const title = ((formData.get("title") as string) || "").trim().slice(0, 200);
+  const description = ((formData.get("description") as string) || "")
+    .trim()
+    .slice(0, 5000);
+  const location = ((formData.get("location") as string) || "")
+    .trim()
+    .slice(0, 200);
+  const date = parseSafeDate(formData.get("date") as string) || new Date();
+
+  if (!title || !location) {
+    throw new Error("Název a místo akce jsou povinné.");
+  }
+
+  const targetPatrol =
+    ((formData.get("targetPatrol") as string) || "").trim().slice(0, 100) ||
+    "Všichni";
 
   await prisma.event.create({
     data: {
       title,
-      description: formData.get("description") as string,
-      location: formData.get("location") as string,
-      date: new Date(formData.get("date") as string),
-      dateEnd: formData.get("dateEnd")
-        ? new Date(formData.get("dateEnd") as string)
-        : null,
-      meetingPoint: (formData.get("meetingPoint") as string) || null,
-      returnPoint: (formData.get("returnPoint") as string) || null,
-      targetPatrol: formData.get("targetPatrol") as string,
+      description,
+      location,
+      date,
+      dateEnd: parseSafeDate(formData.get("dateEnd") as string),
+      meetingPoint:
+        ((formData.get("meetingPoint") as string) || "").trim().slice(0, 300) ||
+        null,
+      returnPoint:
+        ((formData.get("returnPoint") as string) || "").trim().slice(0, 300) ||
+        null,
+      targetPatrol,
       capacity: formData.get("capacity")
-        ? parseInt(formData.get("capacity") as string)
+        ? Math.max(1, parseInt(formData.get("capacity") as string) || 0) || null
         : null,
-      accommodation: (formData.get("accommodation") as string) || null,
-      food: (formData.get("food") as string) || null,
-      equipment: (formData.get("equipment") as string) || null,
-      priceChildren: parseInt(formData.get("priceChildren") as string) || 0,
-      priceOlder: parseInt(formData.get("priceOlder") as string) || 0,
-      paymentMethod: (formData.get("paymentMethod") as string) || null,
-      paymentDeadline: formData.get("paymentDeadline")
-        ? new Date(formData.get("paymentDeadline") as string)
-        : null,
-      rsvpDeadline: formData.get("rsvpDeadline")
-        ? new Date(formData.get("rsvpDeadline") as string)
-        : null,
-      leaderInCharge: (formData.get("leaderInCharge") as string) || null,
-      leaderContact: (formData.get("leaderContact") as string) || null,
+      accommodation:
+        ((formData.get("accommodation") as string) || "")
+          .trim()
+          .slice(0, 500) || null,
+      food:
+        ((formData.get("food") as string) || "").trim().slice(0, 500) || null,
+      equipment:
+        ((formData.get("equipment") as string) || "").trim().slice(0, 2000) ||
+        null,
+      priceChildren: Math.max(
+        0,
+        parseInt(formData.get("priceChildren") as string) || 0,
+      ),
+      priceOlder: Math.max(
+        0,
+        parseInt(formData.get("priceOlder") as string) || 0,
+      ),
+      paymentMethod:
+        ((formData.get("paymentMethod") as string) || "")
+          .trim()
+          .slice(0, 200) || null,
+      paymentDeadline: parseSafeDate(formData.get("paymentDeadline") as string),
+      rsvpDeadline: parseSafeDate(formData.get("rsvpDeadline") as string),
+      leaderInCharge:
+        ((formData.get("leaderInCharge") as string) || "")
+          .trim()
+          .slice(0, 150) || null,
+      leaderContact:
+        ((formData.get("leaderContact") as string) || "")
+          .trim()
+          .slice(0, 150) || null,
       createdById: user.id,
     },
   });
 
-  const allUsers = await prisma.user.findMany();
+  const allUsers = await prisma.user.findMany({ select: { id: true } });
 
   if (allUsers.length > 0) {
     await prisma.notification.createMany({
@@ -501,6 +823,7 @@ export async function createEvent(formData: FormData) {
     });
   }
 
+  revalidatePath("/expedition");
   revalidatePath("/");
   return { success: true };
 }
@@ -508,8 +831,8 @@ export async function createEvent(formData: FormData) {
 export async function createPendingMemberUpdate(formData: FormData) {
   const requester = await requireAuthenticatedUser();
 
-  const targetUserId = formData.get("targetUserId") as string;
-  const updateData = formData.get("data") as string;
+  const targetUserId = ((formData.get("targetUserId") as string) || "").trim();
+  const updateData = ((formData.get("data") as string) || "").trim();
 
   if (
     !targetUserId ||
@@ -528,6 +851,7 @@ export async function createPendingMemberUpdate(formData: FormData) {
 
   const admins = await prisma.user.findMany({
     where: { role: "admin" },
+    select: { id: true },
   });
 
   if (admins.length > 0) {
@@ -548,29 +872,48 @@ export async function createPendingMemberUpdate(formData: FormData) {
 // --- DOKUMENTY ---
 export async function createDocument(formData: FormData) {
   await requireManagementRole();
-  const name = formData.get("name") as string;
-  const url = formData.get("url") as string;
-  const category = formData.get("category") as string;
-  const type = formData.get("type") as string;
+  const name = ((formData.get("name") as string) || "").trim().slice(0, 200);
+  const rawUrl = ((formData.get("url") as string) || "").trim();
+  const category = ((formData.get("category") as string) || "")
+    .trim()
+    .slice(0, 100);
+  const type = ((formData.get("type") as string) || "").trim();
 
-  if (!name || !url || !category) return;
+  const safeUrl = sanitizeUrl(rawUrl);
+  if (!name || !safeUrl || !category) {
+    throw new Error(
+      "Zadejte platný název, kategorii a bezpečnou URL adresu (https://...).",
+    );
+  }
 
   await prisma.document.create({
-    data: { name, url, category, type: type || "pdf" },
+    data: {
+      name,
+      url: safeUrl,
+      category,
+      type: type === "link" ? "link" : "pdf",
+    },
   });
+  revalidatePath("/documents");
 }
 
 export async function deleteDocument(id: string) {
   await requireManagementRole();
+  if (!id) return;
   await prisma.document.delete({ where: { id } });
+  revalidatePath("/documents");
 }
 
 // --- DRUŽINY ---
 export async function updatePatrolInfo(formData: FormData) {
   await requireManagementRole();
-  const id = formData.get("id") as string;
-  const schedule = formData.get("schedule") as string;
-  const location = formData.get("location") as string;
+  const id = ((formData.get("id") as string) || "").trim();
+  const schedule = ((formData.get("schedule") as string) || "")
+    .trim()
+    .slice(0, 200);
+  const location = ((formData.get("location") as string) || "")
+    .trim()
+    .slice(0, 200);
 
   if (!id) return;
 
@@ -578,4 +921,5 @@ export async function updatePatrolInfo(formData: FormData) {
     where: { id },
     data: { schedule, location },
   });
+  revalidatePath("/patrols");
 }

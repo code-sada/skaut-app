@@ -1,4 +1,5 @@
 "use client";
+import FloatingField from "@/app/components/FloatingField";
 import { useState } from "react";
 import React from "react";
 import {
@@ -18,17 +19,29 @@ export default function DocumentsClient({
   deleteDocumentAction,
 }: any) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleCreate = async (formData: FormData) => {
-    await createDocumentAction(formData);
-    setIsAddModalOpen(false);
-    window.location.reload(); // Pro rychlý refresh dat po uložení
+    setFormError(null);
+    try {
+      await createDocumentAction(formData);
+      setIsAddModalOpen(false);
+      window.location.reload();
+    } catch (err: any) {
+      setFormError(
+        err?.message || "Dokument se nepodařilo uložit. Zkontrolujte URL adresu.",
+      );
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm("Opravdu chceš tento dokument smazat?")) {
-      await deleteDocumentAction(id);
-      window.location.reload();
+      try {
+        await deleteDocumentAction(id);
+        window.location.reload();
+      } catch (err: any) {
+        alert(err?.message || "Nepodařilo se smazat dokument.");
+      }
     }
   };
 
@@ -43,7 +56,6 @@ export default function DocumentsClient({
     };
   }, [isAddModalOpen]);
 
-  // Seskupení dokumentů podle kategorie
   const categoriesMap: { [key: string]: any[] } = {};
   documents.forEach((doc: any) => {
     if (!categoriesMap[doc.category]) categoriesMap[doc.category] = [];
@@ -69,7 +81,11 @@ export default function DocumentsClient({
 
         {canManage && (
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            type="button"
+            onClick={() => {
+              setFormError(null);
+              setIsAddModalOpen(true);
+            }}
             className="flex items-center gap-2 bg-[#00c853] hover:bg-[#00b34a] text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm shrink-0"
           >
             <Plus className="w-5 h-5" /> Přidat dokument
@@ -118,6 +134,7 @@ export default function DocumentsClient({
 
                     {canManage && (
                       <button
+                        type="button"
                         aria-label={`Smazat dokument ${doc.name}`}
                         onClick={() => handleDelete(doc.id)}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -136,6 +153,9 @@ export default function DocumentsClient({
       {/* MODAL PRO PŘIDÁNÍ DOKUMENTU */}
       {isAddModalOpen && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Přidat dokument"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setIsAddModalOpen(false)}
         >
@@ -148,6 +168,8 @@ export default function DocumentsClient({
                 Přidat dokument
               </h2>
               <button
+                type="button"
+                aria-label="Zavřít modal"
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-2 bg-gray-200 hover:bg-gray-300 rounded-xl transition-colors"
               >
@@ -155,6 +177,14 @@ export default function DocumentsClient({
               </button>
             </div>
             <form action={handleCreate} className="p-6 space-y-4 pb-12">
+              {formError && (
+                <div
+                  role="alert"
+                  className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200"
+                >
+                  {formError}
+                </div>
+              )}
               <FloatingField
                 id="doc-name"
                 type="text"

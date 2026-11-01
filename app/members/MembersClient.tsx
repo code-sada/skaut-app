@@ -10,8 +10,14 @@ import {
   Plus,
   X,
   FileText,
+  Key,
+  CheckCircle2,
 } from "lucide-react";
-import { requestProfileUpdate, createMember } from "./actions";
+import {
+  requestProfileUpdate,
+  createMember,
+  activateMemberAccount,
+} from "./actions";
 
 function calculateAge(birthDate: Date | string | null) {
   if (!birthDate) return null;
@@ -31,12 +37,13 @@ export default function MembersClient({
 
   const [editingUser, setEditingUser] = useState<any>(null);
   const [detailUser, setDetailUser] = useState<any>(null);
+  const [accountModalUser, setAccountModalUser] = useState<any>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   // FIX: Zablokování posuvníku a schování bílého pruhu
   useEffect(() => {
-    if (editingUser || detailUser || isAddModalOpen) {
+    if (editingUser || detailUser || isAddModalOpen || accountModalUser) {
       document.body.classList.add("modal-open");
     } else {
       document.body.classList.remove("modal-open");
@@ -44,7 +51,7 @@ export default function MembersClient({
     return () => {
       document.body.classList.remove("modal-open");
     };
-  }, [editingUser, detailUser, isAddModalOpen]);
+  }, [editingUser, detailUser, isAddModalOpen, accountModalUser]);
 
   const inputClass =
     "w-full p-2.5 border-2 border-gray-300 rounded-xl bg-white text-gray-900 outline-none focus:border-[#1a237e]";
@@ -59,7 +66,9 @@ export default function MembersClient({
       matchAge = age !== null && age >= 11 && age <= 15;
     if (ageFilter === "over15") matchAge = age !== null && age > 15;
 
-    return matchName && matchPatrol && matchAge && u.role === "MEMBER";
+    const isChildRole =
+      u.role === "MEMBER" || u.role === "child" || u.role === "member";
+    return matchName && matchPatrol && matchAge && isChildRole;
   });
 
   const handleCreateMember = async (formData: FormData) => {
@@ -72,12 +81,31 @@ export default function MembersClient({
     }
   };
 
-  const handleEditMember = async (formData: FormData) => {
-    const result = await requestProfileUpdate(formData);
-    if (result?.success) setEditingUser(null);
+  const handleActivateAccount = async (formData: FormData) => {
+    setFormError(null);
+    const result = await activateMemberAccount(formData);
+    if (!result?.success) {
+      setFormError(result?.error || "Nepodařilo se založit účet.");
+    } else {
+      setAccountModalUser(null);
+    }
   };
 
-  const isLeader = currentUserRole === "admin" || currentUserRole === "LEADER";
+  const handleEditMember = async (formData: FormData) => {
+    setFormError(null);
+    try {
+      const result = await requestProfileUpdate(formData);
+      if (result?.success) setEditingUser(null);
+    } catch (err: any) {
+      setFormError(err?.message || "Nepodařilo se odeslat úpravy.");
+    }
+  };
+
+  const isLeader =
+    currentUserRole === "admin" ||
+    currentUserRole === "LEADER" ||
+    currentUserRole === "leader" ||
+    currentUserRole === "user";
 
   return (
     <div className="space-y-6">
@@ -147,9 +175,20 @@ export default function MembersClient({
             </button>
 
             <div>
-              <h3 className="font-extrabold text-xl text-gray-900">
-                {user.name}
-              </h3>
+              <div className="flex items-center gap-2 pr-8 flex-wrap">
+                <h3 className="font-extrabold text-xl text-gray-900">
+                  {user.name}
+                </h3>
+                {user.hasAccount ? (
+                  <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-50 text-green-700 border border-green-200 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Má účet
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                    Bez účtu
+                  </span>
+                )}
+              </div>
               <p className="text-sm font-bold text-gray-500 mt-1">
                 {user.patrol?.name || "Bez družiny"} • Věk:{" "}
                 {calculateAge(user.birthDate) ?? "?"} let
@@ -199,6 +238,19 @@ export default function MembersClient({
                 </p>
               </div>
               <div className="flex gap-2">
+                {!detailUser.hasAccount && isLeader && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormError(null);
+                      setAccountModalUser(detailUser);
+                      setDetailUser(null);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-[#00c853] hover:bg-green-600 text-white font-bold text-sm flex items-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <Key className="w-4 h-4" /> Založit účet
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setEditingUser(detailUser);
@@ -397,6 +449,10 @@ export default function MembersClient({
                 </div>
               )}
 
+              <div className="bg-blue-50 text-[#1a237e] text-xs font-bold p-3.5 rounded-xl border border-blue-200">
+                ℹ️ Přidáním člena do evidence se mu <strong>automaticky nezaloží přihlašovací účet</strong>. Účet mu pak můžeš kdykoliv založit ručně tlačítkem „Založit účet“ u člena nebo ve Správě účtů.
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FloatingField
                   id="name"
@@ -409,10 +465,9 @@ export default function MembersClient({
                 />
                 <FloatingField
                   id="email"
-                  label="Email (přihlašovací jméno)"
+                  label="Kontaktní e-mail (nepovinné)"
                   type="email"
                   name="email"
-                  required
                   placeholder="jan.novak@skaut.cz"
                   className={inputClass}
                 />
@@ -483,43 +538,55 @@ export default function MembersClient({
                     className={inputClass}
                   />
                   <div className="grid grid-cols-2 gap-4">
-                    <input
+                    <FloatingField
+                      id="createMotherName"
                       type="text"
                       name="motherName"
+                      label="Jméno matky"
                       placeholder="Jméno matky"
                       className={inputClass}
                     />
-                    <input
+                    <FloatingField
+                      id="createMotherPhone"
                       type="text"
                       name="motherPhone"
+                      label="Telefon matka"
                       placeholder="Telefon matka"
                       className={inputClass}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <input
+                    <FloatingField
+                      id="createFatherName"
                       type="text"
                       name="fatherName"
+                      label="Jméno otce"
                       placeholder="Jméno otce"
                       className={inputClass}
                     />
-                    <input
+                    <FloatingField
+                      id="createFatherPhone"
                       type="text"
                       name="fatherPhone"
+                      label="Telefon otec"
                       placeholder="Telefon otec"
                       className={inputClass}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <input
+                    <FloatingField
+                      id="createOtherGuardianName"
                       type="text"
                       name="otherGuardianName"
+                      label="Jiný zástupce (jméno)"
                       placeholder="Jiný zástupce (jméno)"
                       className={inputClass}
                     />
-                    <input
+                    <FloatingField
+                      id="createOtherGuardianPhone"
                       type="text"
                       name="otherGuardianPhone"
+                      label="Jiný zástupce (telefon)"
                       placeholder="Jiný zástupce (telefon)"
                       className={inputClass}
                     />
@@ -757,6 +824,85 @@ export default function MembersClient({
                 className="w-full bg-[#1a237e] hover:bg-blue-900 text-white p-4 rounded-xl font-bold transition-colors text-lg"
               >
                 Odeslat úpravy ke schválení
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODÁLNÍ OKNO PRO RUČNÍ ZALOŽENÍ PŘIHLAŠOVACÍHO ÚČTU ČLENOVI */}
+      {accountModalUser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setAccountModalUser(null)}
+        >
+          <div
+            className="bg-white w-full max-w-md rounded-2xl shadow-2xl border-2 border-gray-200 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-extrabold text-[#1a237e]">
+                  Založit přihlašovací účet
+                </h2>
+                <p className="text-xs text-gray-500 font-bold mt-0.5">
+                  Člen: {accountModalUser.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAccountModalUser(null)}
+                className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form action={handleActivateAccount} className="p-6 space-y-4">
+              <input
+                type="hidden"
+                name="userId"
+                value={accountModalUser.id}
+              />
+              <input type="hidden" name="role" value="MEMBER" />
+
+              {formError && (
+                <div className="bg-red-50 text-red-600 font-bold p-3 rounded-xl border border-red-200 text-sm">
+                  ⚠️ {formError}
+                </div>
+              )}
+
+              <FloatingField
+                id="activateEmail"
+                label="Přihlašovací e-mail"
+                type="email"
+                name="email"
+                required
+                defaultValue={accountModalUser.email || ""}
+                placeholder="napr. jan.novak@skaut.cz"
+                className={inputClass}
+              />
+
+              <FloatingField
+                id="activatePassword"
+                label="Výchozí heslo"
+                type="text"
+                name="password"
+                required
+                defaultValue="skaut123"
+                placeholder="Heslo (při 1. přihlášení si ho změní)"
+                className={inputClass}
+              />
+
+              <p className="text-xs text-gray-500">
+                Po prvním přihlášení bude člen vyzván ke změně výchozího hesla.
+              </p>
+
+              <button
+                type="submit"
+                className="w-full bg-[#00c853] hover:bg-green-600 text-white p-3.5 rounded-xl font-bold transition-colors shadow-sm"
+              >
+                Vytvořit účet pro {accountModalUser.name}
               </button>
             </form>
           </div>

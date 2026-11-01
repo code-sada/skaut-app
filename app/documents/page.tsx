@@ -1,24 +1,19 @@
-import { PrismaClient } from "@prisma/client";
-import { cookies } from "next/headers";
 import DocumentsClient from "./DocumentsClient";
 import { createDocument, deleteDocument } from "@/app/actions";
-
-const prisma = new PrismaClient();
+import { prisma, getSessionUser, MANAGEMENT_ROLES } from "@/lib/auth";
 
 export default async function DocumentsPage() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get("userId")?.value;
-
-  let currentUser = null;
-  if (userId) {
-    currentUser = await prisma.user.findUnique({ where: { id: userId } });
-  }
-
+  const currentUser = await getSessionUser();
   const role = currentUser?.role;
-  const canManage = role === "admin" || role === "user" || role === "leader";
+  const canManage = MANAGEMENT_ROLES.has(role || "");
 
-  // Načteme všechny dokumenty z databáze
+  // Row-Level Security: Členové neuvidí dokumenty z kategorie "Pro vedoucí"
+  const whereClause = canManage
+    ? {}
+    : { NOT: { category: "Pro vedoucí" } };
+
   const documents = await prisma.document.findMany({
+    where: whereClause,
     orderBy: { createdAt: "desc" },
   });
 
