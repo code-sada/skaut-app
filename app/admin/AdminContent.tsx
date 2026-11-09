@@ -92,6 +92,14 @@ export default function AdminContent({
   useEffect(() => {
     if (isModalOpen) {
       document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setIsModalOpen(false);
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     } else {
       document.body.classList.remove("modal-open");
     }
@@ -104,7 +112,7 @@ export default function AdminContent({
 
   return (
     <div
-      className="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto space-y-6"
+      className="p-4 sm:p-6 md:p-8 pb-28 max-w-5xl mx-auto space-y-6"
       suppressHydrationWarning
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">

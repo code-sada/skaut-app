@@ -1,9 +1,25 @@
 "use client";
 import FloatingField from "@/app/components/FloatingField";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { loginUser } from "../actions";
+
+const STORAGE_KEY = "skautapp_cookie_notice_v1";
+const CONSENT_COOKIE = "skautapp_cookie_consent";
+
+function checkClientConsent(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === "accepted" || saved === "essential_only") return true;
+  } catch {
+    // ignore
+  }
+  return document.cookie
+    .split("; ")
+    .some((row) => row.startsWith(`${CONSENT_COOKIE}=`));
+}
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -20,6 +36,37 @@ function SubmitButton() {
 
 export default function LoginPage() {
   const [state, formAction] = useActionState(loginUser, { error: null });
+  const [hasCookieConsent, setHasCookieConsent] = useState(true);
+  const [clientError, setClientError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const syncConsent = () => {
+      const consented = checkClientConsent();
+      setHasCookieConsent(consented);
+      if (consented) {
+        setClientError(null);
+      }
+    };
+    syncConsent();
+    window.addEventListener("skautapp-cookie-consent", syncConsent);
+    window.addEventListener("storage", syncConsent);
+    return () => {
+      window.removeEventListener("skautapp-cookie-consent", syncConsent);
+      window.removeEventListener("storage", syncConsent);
+    };
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!checkClientConsent()) {
+      e.preventDefault();
+      setHasCookieConsent(false);
+      setClientError(
+        "Pro přihlášení musíte nejprve potvrdit souhlas s ukládáním nezbytných přihlašovacích cookies v liště dole.",
+      );
+      return;
+    }
+    setClientError(null);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -27,6 +74,8 @@ export default function LoginPage() {
       e.currentTarget.form?.requestSubmit();
     }
   };
+
+  const displayedError = clientError || state?.error;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -43,13 +92,24 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form action={formAction} className="space-y-4">
-          {state?.error && (
+        <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="hidden"
+            name="cookieConsent"
+            value={hasCookieConsent ? "1" : "0"}
+          />
+          {displayedError && (
             <div
               role="alert"
               className="p-3 bg-red-50 text-red-700 text-sm font-bold rounded-lg border border-red-200 text-center animate-in fade-in"
             >
-              {state.error}
+              {displayedError}
+            </div>
+          )}
+          {!hasCookieConsent && !displayedError && (
+            <div className="p-3 bg-amber-50 text-amber-800 text-xs font-semibold rounded-lg border border-amber-200 text-center">
+              Pro přihlášení je nutné nejprve odsouhlasit nezbytné technické
+              cookies v liště dole.
             </div>
           )}
 

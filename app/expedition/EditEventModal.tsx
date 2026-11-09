@@ -37,10 +37,20 @@ export default function EditEventModal({
 }) {
   React.useEffect(() => {
     document.body.classList.add("modal-open");
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.classList.remove("modal-open");
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [onClose]);
+
+  const handleUpdate = async (formData: FormData) => {
+    await updateEvent(formData);
+    onClose();
+  };
 
   const formatDate = (date: Date | string | null | undefined) =>
     date ? new Date(date).toISOString().split("T")[0] : "";
@@ -66,7 +76,7 @@ export default function EditEventModal({
           </button>
         </div>
 
-        <form action={updateEvent} className="p-8 space-y-8 pb-16">
+        <form action={handleUpdate} className="p-8 space-y-8 pb-16">
           <input type="hidden" name="id" value={event.id} />
 
           <div className="space-y-4">

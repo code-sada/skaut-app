@@ -49,6 +49,14 @@ export default function EventCard({
   React.useEffect(() => {
     if (isModalOpen) {
       document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setIsModalOpen(false);
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     } else {
       document.body.classList.remove("modal-open");
     }

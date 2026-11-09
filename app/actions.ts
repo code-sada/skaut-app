@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   prisma,
@@ -241,6 +242,17 @@ export async function loginUser(
   prevState: { error: string | null },
   formData: FormData,
 ): Promise<{ error: string | null }> {
+  const cookieStore = await cookies();
+  const consentCookie = cookieStore.get("skautapp_cookie_consent")?.value;
+  const formConsent = formData.get("cookieConsent") === "1";
+
+  if (!consentCookie && !formConsent) {
+    return {
+      error:
+        "Pro přihlášení musíte nejprve potvrdit souhlas s ukládáním nezbytných přihlašovacích cookies v liště dole.",
+    };
+  }
+
   const loginIdentifier = ((formData.get("email") as string) || "")
     .trim()
     .slice(0, 150);
@@ -330,7 +342,8 @@ export async function updateProfile(formData: FormData) {
   await setSessionCookies(updated);
   revalidatePath("/profile");
   revalidatePath("/expedition");
-  redirect("/expedition");
+  revalidatePath("/");
+  redirect("/");
 }
 
 export async function exportOwnData() {
@@ -502,7 +515,7 @@ export async function updateEvent(formData: FormData) {
 
   revalidatePath("/expedition");
   revalidatePath("/");
-  redirect("/");
+  return { success: true };
 }
 
 export async function deleteEvent(formData: FormData) {

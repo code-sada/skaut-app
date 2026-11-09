@@ -5,6 +5,12 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 const STORAGE_KEY = "skautapp_cookie_notice_v1";
+const CONSENT_COOKIE = "skautapp_cookie_consent";
+
+function setConsentCookie(value: string) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${CONSENT_COOKIE}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
+}
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
@@ -12,7 +18,16 @@ export default function CookieBanner() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (!saved) {
+      const hasCookie = document.cookie
+        .split("; ")
+        .some((row) => row.startsWith(`${CONSENT_COOKIE}=`));
+
+      if (saved === "accepted" || saved === "essential_only") {
+        if (!hasCookie) {
+          setConsentCookie(saved);
+        }
+        window.dispatchEvent(new Event("skautapp-cookie-consent"));
+      } else if (!hasCookie) {
         setVisible(true);
       }
     } catch {
@@ -26,6 +41,8 @@ export default function CookieBanner() {
     } catch {
       // ignore
     }
+    setConsentCookie(choice);
+    window.dispatchEvent(new Event("skautapp-cookie-consent"));
     setVisible(false);
   };
 

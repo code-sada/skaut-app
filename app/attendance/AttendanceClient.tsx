@@ -156,15 +156,31 @@ export default function AttendanceClient({
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
-    if (selectedMemberId || selectedPatrolId) {
+    if (selectedMemberId || selectedPatrolId || editingActivity) {
       document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          if (editingActivity) {
+            setEditingActivity(null);
+          } else if (selectedMemberId) {
+            setSelectedMemberId(null);
+          } else if (selectedPatrolId) {
+            setSelectedPatrolId(null);
+          }
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     } else {
       document.body.classList.remove("modal-open");
     }
     return () => {
       document.body.classList.remove("modal-open");
     };
-  }, [selectedMemberId, selectedPatrolId]);
+  }, [selectedMemberId, selectedPatrolId, editingActivity]);
 
   const totalMembers = childrenData?.length || 0;
 

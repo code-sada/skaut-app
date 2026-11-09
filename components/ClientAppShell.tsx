@@ -76,12 +76,12 @@ export default function ClientAppShell({
       </div>
 
       <div className="flex-1 flex flex-col h-screen min-w-0">
-        <div className="md:hidden flex items-center bg-white border-b w-full shrink-0">
+        <div className="flex items-center bg-white w-full shrink-0">
           <button
             type="button"
             aria-label="Otevřít hlavní menu"
             onClick={() => setIsMobileOpen(true)}
-            className="p-4 text-gray-600 focus:outline-none shrink-0"
+            className="md:hidden h-16 px-4 text-gray-600 border-b border-gray-200 focus:outline-none shrink-0 flex items-center justify-center"
           >
             <svg
               className="w-7 h-7"
@@ -100,8 +100,6 @@ export default function ClientAppShell({
           </button>
           <div className="flex-1 min-w-0">{header}</div>
         </div>
-
-        <div className="hidden md:block shrink-0">{header}</div>
 
         <main id="main-content" className="flex-1 overflow-y-auto bg-gray-50">
           {children}

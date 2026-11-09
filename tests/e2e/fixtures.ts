@@ -17,11 +17,19 @@ export function hashPassword(password: string) {
 }
 
 export async function login(page: Page, user: (typeof USERS)[keyof typeof USERS]) {
-  await page.goto("/login");
-  await page.getByLabel("E-mail").fill(user.email);
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem("skautapp_cookie_notice_v1", "accepted");
+      document.cookie = "skautapp_cookie_consent=accepted; path=/; max-age=31536000; SameSite=Lax";
+    } catch {
+      // ignore
+    }
+  });
+  await page.goto("/login", { waitUntil: "networkidle" });
+  await page.getByLabel("Přihlašovací e-mail nebo jméno").fill(user.email);
   await page.getByLabel("Heslo").fill(user.password);
   await page.getByRole("button", { name: "Přihlásit se" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/$/, { timeout: 10_000 });
 }
 
 export async function createFixtures() {
@@ -47,7 +55,15 @@ export async function createFixtures() {
 
 export async function cleanupFixtures() {
   const prisma = new PrismaClient();
-  const users = await prisma.user.findMany({ where: { email: { startsWith: "e2e-" } }, select: { id: true } });
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { email: { startsWith: "e2e-" } },
+        { name: { startsWith: TEST_PREFIX } },
+      ],
+    },
+    select: { id: true },
+  });
   const userIds = users.map((user) => user.id);
   await prisma.$transaction([
     prisma.attendance.deleteMany({ where: { userId: { in: userIds } } }),
@@ -58,7 +74,7 @@ export async function cleanupFixtures() {
     prisma.event.deleteMany({ where: { title: { startsWith: TEST_PREFIX } } }),
     prisma.meeting.deleteMany({ where: { title: { startsWith: TEST_PREFIX } } }),
     prisma.document.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } }),
-    prisma.user.deleteMany({ where: { email: { startsWith: "e2e-" } } }),
+    prisma.user.deleteMany({ where: { id: { in: userIds } } }),
     prisma.patrol.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } }),
   ]);
   await prisma.$disconnect();

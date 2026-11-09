@@ -45,6 +45,19 @@ export default function MembersClient({
   useEffect(() => {
     if (editingUser || detailUser || isAddModalOpen || accountModalUser) {
       document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          if (accountModalUser) setAccountModalUser(null);
+          else if (editingUser) setEditingUser(null);
+          else if (detailUser) setDetailUser(null);
+          else if (isAddModalOpen) setIsAddModalOpen(false);
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     } else {
       document.body.classList.remove("modal-open");
     }
@@ -165,6 +178,8 @@ export default function MembersClient({
             className="bg-white p-5 rounded-2xl border-2 border-gray-200 shadow-sm flex flex-col gap-3 relative cursor-pointer hover:border-[#1a237e] transition-colors"
           >
             <button
+              type="button"
+              aria-label={`Upravit člena ${user.name}`}
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingUser(user);

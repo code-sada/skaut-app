@@ -25,6 +25,17 @@ export default function EventsClient({
   React.useEffect(() => {
     if (isAddModalOpen || eventBeingEdited) {
       document.body.classList.add("modal-open");
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          if (eventBeingEdited) setEventBeingEdited(null);
+          else if (isAddModalOpen) setIsAddModalOpen(false);
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.classList.remove("modal-open");
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     } else {
       document.body.classList.remove("modal-open");
     }
